@@ -1,0 +1,2188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>LiteTranslate</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+
+    /*
+     * ★ 面板自身的外观变量 ★
+     * 由「🖼️ 面板外观」折叠区控制，改完立刻生效。
+     *   --pn-bg       面板底色
+     *   --pn-image    面板背景图（data URL）
+     *   --pn-size     背景图铺法
+     *   --pn-text     正文文字色
+     *   --pn-dim      次要文字色
+     *   --pn-card     卡片/输入框底色
+     *   --pn-border   边框色
+     */
+    html {
+      --pn-bg: #ffffff;
+      --pn-image: none;
+      --pn-size: cover;
+      --pn-repeat: no-repeat;
+      --pn-text: #222222;
+      --pn-dim: #888888;
+      --pn-card: #ffffff;
+      --pn-border: #d5d5d5;
+    }
+
+    body {
+      width: 320px;
+      padding: 14px;
+      /* 底部留白：给左下角的作者按钮腾地方，别遮住最下面的内容 */
+      padding-bottom: 62px;
+      font-family: "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      color: var(--pn-text);
+
+      background-color: var(--pn-bg);
+      background-image: var(--pn-image, none);
+      background-size: var(--pn-size, cover);
+      background-repeat: var(--pn-repeat, no-repeat);
+      background-position: center;
+
+      /* 有背景图时给整个面板加一层白色柔化，保证字看得清 */
+      position: relative;
+      min-height: 400px;
+    }
+    /* 背景图模式下：铺一层半透明白，压住图、托起文字 */
+    body.pn-has-image::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: rgba(255, 255, 255, var(--pn-veil, .72));
+      pointer-events: none;
+      z-index: 0;
+    }
+    body.pn-has-image > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--pn-text);
+    }
+    /* 有背景图时，标题和副标题加阴影，避免糊在图里 */
+    body.pn-has-image h1,
+    body.pn-has-image .sub {
+      text-shadow: 0 1px 3px rgba(255, 255, 255, .95),
+                   0 0 8px rgba(255, 255, 255, .85);
+    }
+
+    .sub {
+      margin: 0 0 12px;
+      font-size: 11px;
+      color: var(--pn-dim);
+      line-height: 1.5;
+    }
+    .row {
+      margin-bottom: 10px;
+    }
+    label {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 12px;
+      color: var(--pn-text);
+      opacity: .82;
+    }
+    select, input, textarea {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid var(--pn-border);
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: inherit;
+      color: var(--pn-text);
+      background: var(--pn-card);
+    }
+    select:focus, input:focus, textarea:focus {
+      outline: none;
+      border-color: #4a90d9;
+    }
+    .btn {
+      width: 100%;
+      padding: 9px;
+      border: none;
+      border-radius: 5px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-main {
+      background: #4a90d9;
+      color: #fff;
+    }
+    .btn-main:hover { background: #3a7bc0; }
+    .btn-main.off {
+      background: #e8e8e8;
+      color: #555;
+    }
+    .btn-main.off:hover { background: #dcdcdc; }
+    .btn-mini {
+      background: #f0f0f0;
+      color: #444;
+      font-weight: 400;
+      padding: 6px;
+      font-size: 12px;
+    }
+    .btn-mini:hover { background: #e4e4e4; }
+
+    #status {
+      margin-top: 10px;
+      padding: 8px 10px;
+      border-radius: 4px;
+      background: #f6f8fa;
+      font-size: 12px;
+      line-height: 1.7;
+      color: #555;
+      min-height: 20px;
+    }
+    #status b { color: #1a4f7a; }
+    .warn { color: #c0392b; }
+
+    .custom-only { display: none; }
+    .custom-only.show { display: block; }
+
+    hr {
+      margin: 12px 0;
+      border: none;
+      border-top: 1px solid #eee;
+    }
+    .tip {
+      margin-top: 10px;
+      padding: 8px 10px;
+      background: #fffdf3;
+      border: 1px solid #f0e2b0;
+      border-radius: 4px;
+      font-size: 11px;
+      line-height: 1.6;
+      color: #7a6a30;
+    }
+
+    /* ===== 手动翻译区 ===== */
+    textarea {
+      width: 100%;
+      min-height: 68px;
+      padding: 6px 8px;
+      border: 1px solid #d5d5d5;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: inherit;
+      line-height: 1.6;
+      resize: vertical;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: #4a90d9;
+    }
+    #manualOut {
+      margin-top: 6px;
+      padding: 8px 10px;
+      min-height: 30px;
+      background: #f0f7ff;
+      border: 1px solid #cfe3f7;
+      border-radius: 4px;
+      font-size: 13px;
+      line-height: 1.65;
+      color: #1a4f7a;
+      white-space: pre-wrap;
+      word-break: break-word;
+      display: none;
+    }
+    #manualOut.show { display: block; }
+    .btn-inline {
+      display: flex; gap: 6px; margin-top: 6px;
+    }
+    .btn-inline .btn { flex: 1; }
+    .hint {
+      margin-top: 5px;
+      font-size: 11px;
+      color: #999;
+      line-height: 1.5;
+    }
+
+    /* ===== 可折叠区块 ===== */
+    .fold {
+      border: 1px solid #e5e5e5;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      overflow: hidden;
+    }
+    .fold-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 10px;
+      background: #fafafa;
+      cursor: pointer;
+      user-select: none;
+      font-size: 12px;
+      font-weight: 600;
+      color: #333;
+    }
+    .fold-head:hover { background: #f0f0f0; }
+    .fold-head .arrow {
+      font-size: 10px; color: #999;
+      transition: transform .15s;
+    }
+    .fold.open .fold-head .arrow { transform: rotate(90deg); }
+    .fold-body {
+      display: none;
+      padding: 10px;
+      border-top: 1px solid #eee;
+    }
+    .fold.open .fold-body { display: block; }
+    .fold-body .row:last-child { margin-bottom: 0; }
+
+    /* 快捷键展示 */
+    kbd {
+      display: inline-block;
+      padding: 1px 6px;
+      border: 1px solid #ccc;
+      border-bottom-width: 2px;
+      border-radius: 4px;
+      background: #f8f8f8;
+      font-family: Consolas, monospace;
+      font-size: 11px;
+      color: #333;
+    }
+
+    /* ===== 外观设置 ===== */
+    .color-row {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .color-row input[type="color"] {
+      width: 38px; height: 28px; padding: 0;
+      border: 1px solid #d5d5d5; border-radius: 4px;
+      background: none; cursor: pointer; flex: 0 0 auto;
+    }
+    .color-row .reset {
+      flex: 0 0 auto;
+      font-size: 11px; color: #888;
+      background: none; border: none; cursor: pointer;
+      padding: 2px 4px; border-radius: 3px;
+    }
+    .color-row .reset:hover { background: #f0f0f0; color: #555; }
+
+    .preview {
+      margin-top: 8px;
+      padding: 8px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1.6;
+      /* 具体样式全部由 JS 按当前设置内联写入，保证所见即所得 */
+    }
+    /* 替换模式的预览底：模拟"正文"的浅底 */
+    #replacePreview {
+      background: #fafafa;
+    }
+
+    .font-row {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .font-row input[type="range"] { flex: 1; }
+    .font-row .val {
+      flex: 0 0 46px; text-align: right;
+      font-size: 11px; color: #666;
+      font-family: Consolas, monospace;
+    }
+    .radio-row {
+      display: flex; gap: 12px; margin-bottom: 6px;
+      font-size: 12px; color: #555;
+    }
+    .radio-row label {
+      display: flex; align-items: center; gap: 4px;
+      margin: 0; cursor: pointer;
+    }
+    .radio-row input { width: auto; margin: 0; }
+
+    /* ================================================================
+       左下角作者入口（B站 + 打赏）—— 横排
+       ================================================================ */
+    #authorDock {
+      position: fixed;
+      left: 12px;
+      bottom: 12px;
+      display: flex;
+      flex-direction: row;      /* B站在左，赏在右 */
+      gap: 8px;
+      z-index: 50;
+    }
+    .dock-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 1px solid var(--pn-border);
+      background: var(--pn-card);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      font-weight: bold;
+      padding: 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .12);
+      transition: transform .12s, box-shadow .12s;
+      font-family: inherit;
+    }
+    .dock-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
+    }
+    .dock-btn:active { transform: translateY(0); }
+
+    /* 打赏：绿色（微信色），呼应打赏码 */
+    .dock-donate {
+      color: #079650;
+      border-color: #b7e4cb;
+    }
+    .dock-donate:hover { background: #f0fbf5; }
+
+    /* B站：粉色 */
+    .dock-bili {
+      color: #FB7299;
+      border-color: #fbd0dd;
+    }
+    .dock-bili:hover { background: #fff5f8; }
+
+    /* ================================================================
+       图片弹窗（打赏 / B站名片共用）
+       ================================================================ */
+    #authorModal {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #authorModal.am-hidden { display: none; }
+
+    .am-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, .45);
+      cursor: pointer;
+    }
+    .am-box {
+      position: relative;
+      z-index: 1;
+      max-width: 92%;
+      max-height: 88%;
+      overflow: auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, .3);
+      padding: 10px;
+      animation: amIn .16s ease-out;
+    }
+    @keyframes amIn {
+      from { opacity: 0; transform: scale(.94); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .am-box img {
+      display: block;
+      width: 260px;
+      height: auto;
+      border-radius: 8px;
+      /* 二维码要清晰，禁止浏览器模糊化 */
+      image-rendering: -webkit-optimize-contrast;
+    }
+    .am-close {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(0, 0, 0, .55);
+      color: #fff;
+      font-size: 17px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      z-index: 2;
+    }
+    .am-close:hover { background: rgba(0, 0, 0, .75); }
+
+    /* ================================================================
+       右下角模式切换（漫 / 设）—— 横排
+       ================================================================ */
+    .mode-panel { display: block; }
+
+    #modeSwitch {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      display: flex;
+      flex-direction: row;      /* 漫在左，设在右 */
+      align-items: center;
+      gap: 6px;
+      z-index: 60;
+    }
+
+    /* 按钮上方的小字注释：告诉用户当前在哪个模式 */
+    .ms-note {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-bottom: 6px;
+      font-size: 10px;
+      line-height: 1;
+      color: var(--pn-dim);
+      background: var(--pn-card);
+      border: 1px solid var(--pn-border);
+      border-radius: 999px;
+      padding: 3px 8px;
+      white-space: nowrap;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
+    }
+
+    .ms-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid #c7d6ea;
+      background: linear-gradient(160deg, #eaf2ff 0%, #d8e7fb 100%);
+      color: #2f6bb5;
+      font-size: 19px;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0;
+      box-shadow: 0 3px 12px rgba(47, 107, 181, .28);
+      transition: transform .12s, box-shadow .12s;
+      font-family: "Microsoft YaHei", system-ui, sans-serif;
+    }
+    .ms-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(47, 107, 181, .36);
+    }
+    .ms-btn:active { transform: translateY(0); }
+
+    /* 漫画模式下按钮换个色，一眼能区分状态 */
+    body.mode-comic .ms-btn {
+      border-color: #f3c4d3;
+      background: linear-gradient(160deg, #fff0f5 0%, #fbdce7 100%);
+      color: #d24a77;
+      box-shadow: 0 3px 12px rgba(210, 74, 119, .28);
+    }
+    body.mode-comic .ms-btn:hover {
+      box-shadow: 0 6px 18px rgba(210, 74, 119, .36);
+    }
+
+    /* ================================================================
+       设置页（点右下角「设」进入）
+       ================================================================
+       ★ 实现方式：不搬动任何 HTML ★
+         做法是给 body 加一个类 `show-settings`，然后用 CSS
+         控制「谁显示、谁隐藏」：
+           主界面那几行 → 藏起来
+           标了 .in-settings 的折叠区 → 显示出来
+         元素本身还在原处，只是可见性变了。
+
+       为什么这么做？
+         之前试过把折叠区物理搬进一个容器，结果 HTML 嵌套搞乱、
+         div 不平衡，只能回滚。用可见性控制零风险。
+       ================================================================ */
+
+    /* 默认（主界面）：设置专属的折叠区藏起来 */
+    .fold.in-settings { display: none; }
+
+    /* 设置页打开时：反过来了 */
+    body.show-settings .fold.in-settings { display: block; }
+
+    /* 设置页打开时，主界面这些藏起来 */
+    body.show-settings #modeSite,
+    body.show-settings #modeComic,
+    body.show-settings #foldSettings,
+    body.show-settings #authorDock,
+    body.show-settings > hr { display: none !important; }
+
+    /* 设置页的顶部标题栏：只有打开时才出现 */
+    #spBar { display: none; }
+    body.show-settings #spBar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 0 0 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--pn-border);
+    }
+    .sp-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--pn-text);
+    }
+    .sp-close {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 1px solid var(--pn-border);
+      background: var(--pn-card);
+      color: var(--pn-text);
+      font-size: 17px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .sp-close:hover { background: #f0f0f0; }
+
+    /* 「设」按钮：跟「漫」同款，但换个中性色 */
+    .ms-set {
+      border-color: #d8d8d8;
+      background: linear-gradient(160deg, #fafafa 0%, #ececec 100%);
+      color: #555;
+      box-shadow: 0 3px 12px rgba(0, 0, 0, .16);
+    }
+    .ms-set:hover { box-shadow: 0 6px 18px rgba(0, 0, 0, .22); }
+    /* 漫画模式下「设」也跟着偏粉，保持一致 */
+    body.mode-comic .ms-set {
+      border-color: #ecd6dd;
+      background: linear-gradient(160deg, #fffafa 0%, #f7ecf0 100%);
+      color: #a45c76;
+    }
+
+    /* 设置里那些「仅网站模式有效」的小标签 */
+    .mode-badge {
+      display: inline-block;
+      font-size: 10px;
+      line-height: 1;
+      padding: 3px 7px;
+      margin-bottom: 8px;
+      border-radius: 999px;
+      background: #eef4ff;
+      color: #3567a8;
+      border: 1px solid #d3e2f7;
+    }
+
+    /* ================================================================
+       按模式显隐（翻译设置里的内容跟着模式变）
+       ================================================================
+       ★ 怎么做？★ 给元素贴标签，不搬位置：
+           class="site-only"  → 只在网站模式显示
+           class="comic-only" → 只在漫画模式显示
+         body 上有 mode-site / mode-comic 类，CSS 据此显示隐藏。
+
+       ★ 为什么不把元素搬到两个容器里？★
+         上次搬 HTML 把嵌套搞坏了（foldLook 重复、div 不平衡），
+         只能从备份回滚。贴标签零风险。
+       ================================================================ */
+    .comic-only { display: none; }
+
+    body.mode-comic .site-only { display: none; }
+    body.mode-comic .comic-only { display: block; }
+    body.mode-site .comic-only { display: none; }
+
+    /* 这些行原本是 flex 布局的（label + checkbox 一行），
+       所以漫画模式下要恢复成 flex，不能一律 block。 */
+    body.mode-comic .comic-only.row-flex { display: flex; }
+
+    /* ================================================================
+       ★ 功能介绍（2026-10-17 新增）★
+       ================================================================
+       ★ 为什么单独一套样式？★
+         这份介绍是"读"的，不是"操作"的，跟设置项混在一起会乱。
+         所以用自己的一套排版语言：
+           · .guide-h   章节小标题（左边加一道色条，扫一眼就知道断在哪）
+           · .guide-t   三列表格（左窄右宽，标签对齐好扫）
+           · .guide-item 编号条目（每条一件事，不堆在一起）
+           · .guide-q/a 问答（问题加粗，答案缩进）
+       目标：**内容够多但不挤**，用户能按"我想干什么"跳着看。
+       ================================================================ */
+    .guide-lead {
+      font-size: 11.5px;
+      line-height: 1.75;
+      color: var(--pn-text);
+      background: rgba(80, 140, 240, .07);
+      border-left: 3px solid #5b8def;
+      border-radius: 0 6px 6px 0;
+      padding: 9px 11px;
+      margin: 0 0 12px;
+    }
+
+    .guide-h {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--pn-text);
+      margin: 16px 0 8px;
+      padding-left: 8px;
+      border-left: 3px solid #5b8def;
+      line-height: 1.3;
+    }
+    .guide-h:first-of-type { margin-top: 6px; }
+
+    /* 表格：左列窄、右列宽 */
+    .guide-t {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+      line-height: 1.65;
+      margin: 0 0 6px;
+    }
+    .guide-t tr { border-bottom: 1px solid rgba(128, 128, 128, .14); }
+    .guide-t tr:last-child { border-bottom: none; }
+    .guide-t td { padding: 6px 4px; vertical-align: top; }
+    .guide-t .gk {
+      width: 92px;
+      font-weight: 600;
+      color: var(--pn-text);
+      white-space: nowrap;
+      padding-right: 8px;
+    }
+    .guide-t td:not(.gk) { color: var(--pn-dim); }
+
+    /* 编号条目 */
+    .guide-item {
+      font-size: 11.5px;
+      line-height: 1.72;
+      color: var(--pn-dim);
+      margin: 0 0 9px;
+      padding-left: 9px;
+      border-left: 2px solid rgba(128, 128, 128, .18);
+    }
+    .guide-item b { color: var(--pn-text); font-weight: 600; }
+
+    /* 补充说明（灰底小字） */
+    .guide-note {
+      font-size: 11px;
+      line-height: 1.7;
+      color: var(--pn-dim);
+      background: rgba(128, 128, 128, .07);
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin: 8px 0 4px;
+    }
+    .guide-note2 {
+      font-size: 11px;
+      color: var(--pn-dim);
+      opacity: .85;
+    }
+
+    /* 警告 */
+    .guide-warn {
+      display: inline-block;
+      margin-top: 4px;
+      font-size: 11px;
+      color: #c0392b;
+      line-height: 1.6;
+    }
+    body.skin-dark .guide-warn { color: #ff8f85; }
+
+    /* 问答 */
+    .guide-q {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--pn-text);
+      margin: 10px 0 3px;
+    }
+    .guide-a {
+      font-size: 11.5px;
+      line-height: 1.72;
+      color: var(--pn-dim);
+      margin: 0 0 4px;
+      padding-left: 10px;
+    }
+
+    .guide-foot {
+      font-size: 10.5px;
+      line-height: 1.7;
+      color: var(--pn-dim);
+      opacity: .8;
+      text-align: center;
+      margin: 16px 0 0;
+      padding-top: 10px;
+      border-top: 1px solid rgba(128, 128, 128, .14);
+    }
+
+    /* 深色皮肤下把底色调一下（不然浅色底在深底上刺眼） */
+    body.skin-dark .guide-lead {
+      background: rgba(68, 147, 248, .1);
+      border-left-color: #4493f8;
+    }
+    body.skin-dark .guide-h { border-left-color: #4493f8; }
+    body.skin-dark .guide-note { background: rgba(255, 255, 255, .05); }
+    body.skin-soft .guide-lead {
+      background: linear-gradient(135deg, rgba(91, 141, 239, .1), rgba(124, 108, 240, .1));
+      border-left-color: #6c8ef5;
+      border-radius: 0 12px 12px 0;
+    }
+    body.skin-soft .guide-h { border-left-color: #6c8ef5; }
+    body.skin-soft .guide-note { border-radius: 12px; }
+
+    /* ================================================================
+       ★ 界面皮肤（2026-10-17 新增）★
+       ================================================================
+       三版皮肤都内置，在「🖼️ 面板外观」里选，默认 minimal（极简白）。
+
+       ★ 为什么用 body.skin-xxx 前缀？★
+         三份皮肤都要改 body / select / .btn 这些通用选择器，
+         不加前缀会互相覆盖（预览页第一版就踩过这个坑：
+         三份 CSS 塞一起，最后一个赢，三版长得一模一样）。
+         加前缀后每份只在自己那个 skin 类下生效，互不干扰。
+
+       ★ 跟已有的「面板底色/文字色」怎么共存？★
+         皮肤只定义 --pn-bg / --pn-text 这些变量的**默认值**。
+         用户在下面自定义的颜色是通过内联 style 写在 html 上的，
+         内联优先级更高 → 自定义永远赢。
+         所以「换皮肤」和「自定义背景」不会打架。
+       ================================================================ */
+
+    /* ---------- 皮肤 1：极简白（默认）---------- */
+    body.skin-minimal {
+      --pn-bg: #ffffff;
+      --pn-text: #1f2328;
+      --pn-dim: #8b949e;
+      --pn-card: #ffffff;
+      --pn-border: #e8eaed;
+    }
+    body.skin-minimal .row > label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #57606a;
+    }
+    body.skin-minimal select,
+    body.skin-minimal input[type="text"],
+    body.skin-minimal input[type="password"],
+    body.skin-minimal input[type="number"],
+    body.skin-minimal textarea {
+      border-radius: 7px;
+      border-color: #e8eaed;
+    }
+    body.skin-minimal select:focus,
+    body.skin-minimal input:focus,
+    body.skin-minimal textarea:focus {
+      border-color: #1f2328;
+      box-shadow: 0 0 0 3px rgba(31, 35, 40, .08);
+    }
+    body.skin-minimal .btn {
+      border-radius: 7px;
+      border-color: #e8eaed;
+      background: #fff;
+      color: #1f2328;
+    }
+    body.skin-minimal .btn:hover {
+      background: #f6f8fa;
+      border-color: #d0d7de;
+    }
+    body.skin-minimal .btn-main,
+    body.skin-minimal .btn-main.off {
+      background: #1f2328;
+      color: #fff;
+      border-color: #1f2328;
+      font-weight: 600;
+    }
+    body.skin-minimal .btn-main:hover {
+      background: #32383f;
+      border-color: #32383f;
+    }
+    body.skin-minimal hr {
+      border: none;
+      border-top: 1px solid #e8eaed;
+    }
+    body.skin-minimal .fold {
+      border: none;
+      border-top: 1px solid #e8eaed;
+      border-radius: 0;
+      margin-bottom: 0;
+    }
+    body.skin-minimal .fold:last-of-type {
+      border-bottom: 1px solid #e8eaed;
+    }
+    body.skin-minimal .fold-head {
+      padding: 11px 2px;
+      background: transparent;
+      border-radius: 0;
+    }
+    body.skin-minimal .fold-head:hover {
+      background: #f6f8fa;
+    }
+    body.skin-minimal .fold-body {
+      border-top: none;
+      padding: 4px 2px 14px;
+    }
+    body.skin-minimal #status {
+      background: #f6f8fa;
+      border: none;
+      border-radius: 7px;
+    }
+
+    /* ---------- 皮肤 2：深色科技 ---------- */
+    body.skin-dark {
+      --pn-bg: #16181d;
+      --pn-text: #e6edf3;
+      --pn-dim: #7d8590;
+      --pn-card: #21262d;
+      --pn-border: #30363d;
+    }
+    body.skin-dark .row > label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #adbac7;
+    }
+    body.skin-dark label span {
+      color: #c9d1d9;
+    }
+    body.skin-dark select,
+    body.skin-dark input[type="text"],
+    body.skin-dark input[type="password"],
+    body.skin-dark input[type="number"],
+    body.skin-dark textarea {
+      background: #21262d;
+      color: #e6edf3;
+      border-color: #30363d;
+      border-radius: 7px;
+    }
+    body.skin-dark select:focus,
+    body.skin-dark input:focus,
+    body.skin-dark textarea:focus {
+      border-color: #4493f8;
+      box-shadow: 0 0 0 3px rgba(68, 147, 248, .18);
+    }
+    body.skin-dark .btn {
+      background: #21262d;
+      color: #e6edf3;
+      border-color: #30363d;
+      border-radius: 7px;
+    }
+    body.skin-dark .btn:hover {
+      background: #30363d;
+      border-color: #484f58;
+    }
+    body.skin-dark .btn-main,
+    body.skin-dark .btn-main.off {
+      background: #1f6feb;
+      color: #fff;
+      border-color: #1f6feb;
+      font-weight: 600;
+    }
+    body.skin-dark .btn-main:hover {
+      background: #388bfd;
+      border-color: #388bfd;
+    }
+    body.skin-dark hr {
+      border: none;
+      border-top: 1px solid #30363d;
+    }
+    body.skin-dark .fold {
+      border: none;
+      border-top: 1px solid #30363d;
+      border-radius: 0;
+      margin-bottom: 0;
+    }
+    body.skin-dark .fold:last-of-type {
+      border-bottom: 1px solid #30363d;
+    }
+    body.skin-dark .fold-head {
+      padding: 11px 2px;
+      color: #c9d1d9;
+      background: transparent;
+      border-radius: 0;
+    }
+    body.skin-dark .fold-head:hover {
+      background: #1c2128;
+    }
+    body.skin-dark .fold.open .fold-head {
+      color: #fff;
+    }
+    body.skin-dark .fold-body {
+      border-top: none;
+      padding: 4px 2px 14px;
+    }
+    body.skin-dark #status {
+      background: #1c2128;
+      color: #9198a1;
+      border: 1px solid #30363d;
+      border-radius: 7px;
+    }
+    body.skin-dark .hint code {
+      background: #2d333b;
+      color: #ffa657;
+    }
+    body.skin-dark .mode-badge {
+      background: #1c2128;
+      color: #7d8590;
+      border-color: #30363d;
+    }
+    body.skin-dark input[type="color"] {
+      background: #21262d;
+      border-color: #30363d;
+    }
+
+    /* ---------- 皮肤 3：圆润可爱 ---------- */
+    body.skin-soft {
+      --pn-bg: #f7f8fc;
+      --pn-text: #1c1c1e;
+      --pn-dim: #8e8e93;
+      --pn-card: #ffffff;
+      --pn-border: #e4e6ef;
+    }
+    body.skin-soft .row > label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #4b5563;
+    }
+    body.skin-soft select,
+    body.skin-soft input[type="text"],
+    body.skin-soft input[type="password"],
+    body.skin-soft input[type="number"],
+    body.skin-soft textarea {
+      background: #f2f4fa;
+      border: 1.5px solid #e4e6ef;
+      border-radius: 12px;
+    }
+    body.skin-soft select:focus,
+    body.skin-soft input:focus,
+    body.skin-soft textarea:focus {
+      background: #fff;
+      border-color: #6c8ef5;
+      box-shadow: 0 0 0 4px rgba(108, 142, 245, .14);
+    }
+    body.skin-soft .btn {
+      background: #fff;
+      border: 1.5px solid #e4e6ef;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(28, 28, 30, .05);
+    }
+    body.skin-soft .btn:hover {
+      background: #fbfcff;
+      border-color: #cdd4e8;
+      box-shadow: 0 3px 10px rgba(28, 28, 30, .09);
+    }
+    body.skin-soft .btn-main,
+    body.skin-soft .btn-main.off {
+      background: linear-gradient(135deg, #5b8def 0%, #7c6cf0 100%);
+      color: #fff;
+      border: none;
+      font-weight: 650;
+      box-shadow: 0 3px 12px rgba(91, 141, 239, .32);
+    }
+    body.skin-soft .btn-main:hover {
+      background: linear-gradient(135deg, #6b9af5 0%, #8b7bf8 100%);
+      box-shadow: 0 6px 18px rgba(91, 141, 239, .42);
+    }
+    body.skin-soft hr {
+      border: none;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #e4e6ef, transparent);
+    }
+    body.skin-soft .fold {
+      border: none;
+      border-radius: 14px;
+      margin-bottom: 8px;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(28, 28, 30, .06), 0 0 0 1px rgba(28, 28, 30, .03);
+      overflow: hidden;
+    }
+    body.skin-soft .fold-head {
+      padding: 12px 14px;
+      font-weight: 600;
+      background: transparent;
+      border-radius: 0;
+    }
+    body.skin-soft .fold-head:hover {
+      background: #f8f9fd;
+    }
+    body.skin-soft .fold.open .fold-head {
+      background: linear-gradient(135deg, rgba(91, 141, 239, .07), rgba(124, 108, 240, .07));
+    }
+    body.skin-soft .fold-body {
+      border-top: 1px solid #f0f1f7;
+      padding: 6px 14px 16px;
+    }
+    body.skin-soft #status {
+      background: #eef1f9;
+      border: none;
+      border-radius: 12px;
+    }
+    body.skin-soft .hint code {
+      background: #eef1f9;
+      color: #6366f1;
+      font-weight: 500;
+    }
+    body.skin-soft .mode-badge {
+      background: linear-gradient(135deg, rgba(91, 141, 239, .12), rgba(124, 108, 240, .12));
+      color: #5b6fd6;
+      border: none;
+      font-weight: 600;
+    }
+    body.skin-soft input[type="color"] {
+      border: 1.5px solid #e4e6ef;
+      border-radius: 9px;
+      background: #fff;
+    }
+    body.skin-soft .ms-btn {
+      border: none;
+      box-shadow: 0 3px 12px rgba(91, 141, 239, .32);
+    }
+
+    /* ================================================================
+       功能介绍弹窗（2026-10-17）
+       ================================================================
+       跟「赏」那个弹窗用同一套视觉语言：
+         · 半透明遮罩铺满、点它关闭
+         · 内容居中、最大 90vw / 86vh，内部滚动
+         · 右上角 ×、Esc 也能关
+       为什么不复用 .am-* 那几个类？
+         那是给"看大图"用的（宽高按图走、无滚动区）。
+         介绍是长文字，需要固定高度 + 内部滚动，行为不同，
+         硬套会把图片弹窗的规则也改掉。所以单独一套 gm-* 前缀。
+       ================================================================ */
+    .gm-hidden { display: none !important; }
+
+    #guideModal {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .gm-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, .55);
+      backdrop-filter: blur(2px);
+    }
+
+    .gm-box {
+      position: relative;
+      width: 92vw;
+      max-width: 380px;
+      height: 84vh;
+      max-height: 620px;
+      display: flex;
+      flex-direction: column;
+      background: var(--pn-bg);
+      border-radius: 12px;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, .45);
+      overflow: hidden;
+    }
+
+    .gm-head {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--pn-text);
+      border-bottom: 1px solid var(--pn-border);
+      background: var(--pn-card);
+    }
+
+    .gm-close {
+      width: 26px;
+      height: 26px;
+      border: none;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--pn-text);
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .gm-close:hover { background: rgba(128, 128, 128, .16); }
+
+    .gm-body {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      padding: 12px 14px 18px;
+      overscroll-behavior: contain;
+    }
+
+    /* ---------- 结尾那段真心话 ----------
+       用户要求"真诚"，所以：
+         · 不要彩色框（那看起来像广告语）
+         · 用正文色、正常行距，像人说话
+         · 上下留白多一点，跟上面功能列表拉开
+         · 落款右对齐、更淡 */
+    .guide-words {
+      margin: 22px 0 4px;
+      padding-top: 16px;
+      border-top: 1px dashed var(--pn-border);
+    }
+    .guide-words-inner p {
+      font-size: 11.5px;
+      line-height: 1.85;
+      color: var(--pn-text);
+      opacity: .88;
+      margin: 0 0 11px;
+    }
+    .guide-words-inner p:last-child { margin-bottom: 0; }
+
+    /* 第一句稍微重一点 —— 它是这段话的来处 */
+    .guide-words-open {
+      font-size: 12.5px !important;
+      font-weight: 600;
+      opacity: 1 !important;
+      margin-bottom: 12px !important;
+    }
+    .guide-sign {
+      text-align: right;
+      font-size: 11px !important;
+      color: var(--pn-dim) !important;
+      opacity: .8 !important;
+      margin-top: 14px !important;
+    }
+    /* 「设」里那个入口：看起来像折叠区，但其实是按钮 */
+    .guide-entry { cursor: pointer; }
+    .guide-arrow {
+      transform: rotate(90deg) !important;
+      opacity: .5;
+    }
+
+    /* 深色皮肤下弹窗跟着变暗 */
+    body.skin-dark .gm-box { background: #16181d; }
+    body.skin-dark .gm-head { background: #21262d; }
+    body.skin-soft .gm-box { border-radius: 16px; }
+    body.skin-soft .gm-head {
+      background: linear-gradient(135deg, rgba(91,141,239,.12), rgba(124,108,240,.12));
+    }
+
+    /* ================================================================
+       翻译设置弹窗（2026-10-17）
+       ================================================================
+       跟「赏」同一套视觉：遮罩 + 居中盒 + 点遮罩/× 关闭。
+       区别：这个有**底部固定保存条**，内容再长也不用滚到底找按钮。
+
+       ★ 为什么保存条要固定？★
+         设置项很多（6 种引擎各一套 Key/模型），
+         如果保存按钮跟在内容最后，用户改完上面几项还得滑到底才能存，
+         很容易漏存。固定住 = 随时能点。
+       ================================================================ */
+    .sm-hidden { display: none !important; }
+
+    #settingsModal {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483400;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sm-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, .5);
+    }
+
+    .sm-box {
+      position: relative;
+      /* ★ 2026-10-17 修：原来用 calc(100% - 16px) 再配 max-width:300px，
+           在窄面板里算出来会顶到右边框（截图验证时发现的）。
+           改成 max-width 卡死、width 只做上限，两边各留 10px 余量。 */
+      width: 100%;
+      max-width: calc(100% - 20px);
+      height: 86vh;
+      max-height: 560px;
+      display: flex;
+      flex-direction: column;
+      background: var(--pn-bg);
+      border-radius: 10px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, .4);
+      overflow: hidden;
+    }
+
+    .sm-head {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 13px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--pn-text);
+      border-bottom: 1px solid var(--pn-border);
+      background: var(--pn-card);
+    }
+
+    .sm-close {
+      width: 24px;
+      height: 24px;
+      border: none;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--pn-text);
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .sm-close:hover { background: rgba(128, 128, 128, .16); }
+
+    /* 内容区：唯一可滚的地方 */
+    .sm-body {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      padding: 11px 13px 14px;
+      overscroll-behavior: contain;
+    }
+
+    /* 保存条：固定在底部，永远看得见 */
+    .sm-foot {
+      flex: 0 0 auto;
+      padding: 10px 13px;
+      border-top: 1px solid var(--pn-border);
+      background: var(--pn-card);
+    }
+
+    .sm-save {
+      width: 100%;
+      margin: 0 !important;
+    }
+
+    /* 「设」里那个入口：看着像折叠区，其实是按钮 */
+    .settings-entry { cursor: pointer; }
+    .settings-arrow {
+      transform: rotate(90deg) !important;
+      opacity: .5;
+    }
+
+    /* 深色皮肤适配 */
+    body.skin-dark .sm-box { background: #16181d; }
+    body.skin-dark .sm-head,
+    body.skin-dark .sm-foot { background: #21262d; }
+    body.skin-soft .sm-box { border-radius: 14px; }
+    body.skin-soft .sm-head {
+      background: linear-gradient(135deg, rgba(91,141,239,.12), rgba(124,108,240,.12));
+    }
+  </style>
+</head>
+<body class="mode-site skin-minimal">
+  <h1>LiteTranslate</h1>
+  <p class="sub">只翻译你<b>看得见</b>的部分 —— 演示版 0.7</p>
+
+  <!-- ===== 设置页标题栏（只在点「设」后显示）===== -->
+  <div id="spBar">
+    <span class="sp-title">设置</span>
+    <button class="sp-close" id="spClose" type="button" title="返回">×</button>
+  </div>
+
+  <!-- ================================================================
+       模式切换：网站模式 / 漫画模式
+       ================================================================
+       为什么分模式？
+         两套功能（翻网页文字 / 翻漫画图）设置项完全不同，
+         全堆在一页里会有 36 个输入框，用户根本找不到东西。
+         分模式后每页只显示相关的，一眼就看清。
+
+       共用区（模式切换按钮上方/下方不参与切换的部分）：
+         · 作者入口（打赏 / B站）—— 跟模式无关
+         · 面板外观 —— 改的是插件自己长什么样，也跟模式无关
+       ================================================================ -->
+
+  <!-- ============ 【网站模式】============ -->
+  <!-- 内联 display 是双保险：万一 CSS 没加载，也不会两个模式叠在一起 -->
+  <div id="modeSite" class="mode-panel" style="display:block;">
+
+  <div class="row">
+    <label>翻译范围</label>
+    <select id="translateMode">
+      <option value="page">整页翻译（翻整个网页）</option>
+      <option value="selection">只翻我选的（右键 / 快捷键）</option>
+    </select>
+  </div>
+
+  <div class="row" id="autoRow">
+    <label style="display:flex; align-items:center; gap:7px; cursor:pointer; margin-bottom:0;">
+      <input type="checkbox" id="autoTranslate" style="width:auto; margin:0;" />
+      <span>打开网页就自动翻译（推荐）</span>
+    </label>
+  </div>
+
+  <div class="row">
+    <label>显示方式</label>
+    <select id="displayMode">
+      <option value="bilingual">双语对照（译文在原文下方）</option>
+      <option value="replace">直接替换原文（只看译文）</option>
+    </select>
+  </div>
+
+  <!-- ===== 翻译力度：精翻 / 全翻译 =====
+       2026-10-16 新增。为什么叫「力度」不叫「范围」？
+         上面已经有个「翻译范围」了（整页 / 只翻选的），
+         两个同名会混淆。这个管的是"翻多细"。 -->
+  <div class="row">
+    <label>翻译力度</label>
+    <select id="translateScope">
+      <option value="precise" selected>精翻 · 只翻成段的正文（译文干净）</option>
+      <option value="full">全翻译 · 连「登录」「密码」都翻</option>
+    </select>
+    <div class="hint">
+      <b>精翻</b>：只翻像正文的段落，跳过按钮、标签、短词 —— 译文看着清爽。<br />
+      <b>全翻译</b>：页面上**能翻的都翻**，包括 <code>Sign in</code>、
+      <code>Password</code>、<code>忘记密码</code> 这类界面短词。<br />
+      <span style="color:#c0392b">
+        ⚠️ 看不懂英文的人（连登录框都读不懂）请选<b>全翻译</b>。<br />
+        代价：译文会密一些，页面上的标签、角标也会被翻。
+      </span>
+    </div>
+  </div>
+
+  <button class="btn btn-main off" id="toggle">开始翻译本页</button>
+
+  <div id="status">准备就绪</div>
+
+  <!-- ===== 手动翻译：把漏翻的内容贴进来 =====
+       2026-10-15 从漫画模式搬回这里 —— 它翻的是网页文字，属网站模式。 -->
+  <div class="row">
+    <label>手动翻译（漏翻的地方贴这里）</label>
+    <textarea id="manualIn" placeholder="把页面上没翻出来的外文粘贴到这里，回车或点按钮翻译"></textarea>
+    <div class="btn-inline">
+      <button class="btn btn-mini" id="manualGo">翻译这段</button>
+      <button class="btn btn-mini" id="manualCopy" style="flex:0 0 84px;">复制结果</button>
+    </div>
+    <div id="manualOut"></div>
+    <div class="hint">
+      也可以：<b>选中网页文字 → 右键 → 「用 LiteTranslate 翻译这段」</b>，
+      或按 <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd>
+    </div>
+  </div>
+
+  </div>
+  <!-- ============ 【网站模式】结束 ============ -->
+
+  <!-- ============ 【漫画模式】============ -->
+  <div id="modeComic" class="mode-panel" style="display:none;">
+
+  <div class="row">
+    <label style="display:flex; align-items:center; gap:7px; cursor:pointer; margin-bottom:0;">
+      <input type="checkbox" id="imageTranslate" style="width:auto; margin:0;" />
+      <span>翻译图片里的文字（看图认字）</span>
+    </label>
+    <div class="hint" style="margin-top:5px;">
+      开启后：<b>鼠标移到图上</b>，右上角会出现一个「译」按钮；
+      也可以直接<b>右键图片</b> → 翻译这张图。<br />
+      <span style="color:#999">
+        大图约需 10~30 秒。用硅基流动的免费看图模型，需要填 Key。
+      </span>
+    </div>
+  </div>
+
+  <!-- 注：「鼠标悬停出现按钮」已删除（2026-10-15）。
+       主人实测：截图翻译完全碾压它，留着只会让人选错。
+       现在翻图的两条路：右键翻译 / 截图翻译。 -->
+
+  <!-- 注：「漫画看图模型」下拉已挪进「⚙️ 翻译设置（漫画）」里，
+       不再占主界面的地方。 -->
+
+  <div class="row" id="imageAutoRow" style="display:none;">
+    <label style="display:flex; align-items:center; gap:7px; cursor:pointer; margin-bottom:0;">
+      <input type="checkbox" id="imageAuto" style="width:auto; margin:0;" />
+      <span>自动翻译（滚到哪翻到哪）</span>
+    </label>
+    <div class="hint" style="margin-top:5px;">
+      图片进入屏幕后<b>自动翻译</b>，不用点。<br />
+      <span style="color:#c0392b">
+        ⚠️ 一张图要 10~30 秒，翻过的图不会重复翻。<br />
+        滚太快时可能跳过中间的图（省额度）。
+      </span>
+    </div>
+  </div>
+
+  <!-- ===== 截图翻译：框选屏幕任意区域来翻 =====
+       2026-10-15 新增。为什么需要它？
+         前面「图片翻译」只能翻页面上的 <img>/背景图/canvas，
+         但漫画有时是视频、有时是跨域 canvas（读不到像素），
+         还有些网站根本抓不到图。截图翻译是万能兜底：
+         用户框哪块就翻哪块，不受页面结构限制。 -->
+  <div class="row">
+    <button class="btn btn-mini" id="shotGo" style="width:100%;">📷 截图翻译（框选屏幕）</button>
+    <div class="hint" style="margin-top:5px;">
+      点一下 → 屏幕变暗 → <b>拖动鼠标框住要翻的地方</b> → 自动翻译。<br />
+      <span style="color:#999">
+        适合：漫画图、视频画面、跨域图片、抓不到图的网站。<br />
+        按 Esc 或点右键可取消。
+      </span>
+    </div>
+    <!-- 出问题时的自检：点一下把诊断显示在下面，不用开 F12 -->
+    <button class="btn btn-mini" id="shotDiag" style="width:100%; margin-top:6px; font-size:11px;">
+      🔍 截图翻译没反应？点这里自检
+    </button>
+    <div id="shotDiagOut" style="font-size:11px; color:#555; line-height:1.7; margin-top:6px; white-space:pre-wrap;"></div>
+  </div>
+
+  <!-- ===== 图片译文的外观 ===== -->
+  <div class="row" id="imgLookRow" style="display:none;">
+    <label style="display:flex; align-items:center; gap:7px; cursor:pointer; margin-bottom:0;">
+      <input type="checkbox" id="imgShowSource" style="width:auto; margin:0;" />
+      <span>译文里也显示原文（双语对照）</span>
+    </label>
+    <div class="hint" style="margin-top:4px;">
+      不勾就只看中文，勾了会中文一行、原文一行。
+    </div>
+
+    <div style="height:8px"></div>
+    <label>译文字体颜色</label>
+    <div class="color-row">
+      <input type="color" id="imgTextColor" value="#ffffff" />
+      <button class="reset" id="imgTextColorReset">恢复默认</button>
+    </div>
+
+    <div style="height:6px"></div>
+    <label>译文底色</label>
+    <div class="color-row">
+      <input type="color" id="imgBgColor" value="#111827" />
+      <button class="reset" id="imgBgColorReset">恢复默认</button>
+    </div>
+
+    <div style="height:6px"></div>
+    <div class="font-row">
+      <label style="margin:0; white-space:nowrap;">译文字号</label>
+      <input type="range" id="imgFontSize" min="12" max="32" step="1" value="15" />
+      <span class="val" id="imgFontSizeVal">15px</span>
+    </div>
+  </div>
+
+  <hr />
+
+  </div>
+  <!-- ============ 【漫画模式】结束 ============ -->
+
+  <hr />
+
+  <!-- ===== 右下角：模式切换按钮 ===== -->
+  <!--
+    按钮上显示的是「点了会切到哪个模式」，不是「当前是什么模式」。
+      网站模式下显示「漫」→ 点它去漫画模式
+      漫画模式下显示「网」→ 点它回网站模式
+    这样按钮写什么就是什么，最符合直觉。
+  -->
+  <div id="modeSwitch">
+    <div class="ms-note" id="msNote">网站模式</div>
+    <button class="ms-btn" id="msBtn" type="button" title="切换模式">漫</button>
+    <button class="ms-btn ms-set" id="msSet" type="button" title="设置">设</button>
+  </div>
+
+  <!-- ===== 翻译设置（2026-10-17 改成面板内弹窗）=====
+       主人要求：跟「赏」一样的弹窗，让人看清楚，最后有保存按钮。
+       ★ 只换了外壳，里面的控件一个没动 ★
+         popup.js 靠 id 找这些控件，动了就要同步改一堆代码。 -->
+  <div class="fold" id="foldSettingsEntry">
+    <div class="fold-head settings-entry" id="settingsOpen">
+      <span id="foldSettingsTitle">⚙️ 翻译设置（网站）</span>
+      <span class="arrow settings-arrow">▶</span>
+    </div>
+  </div>
+
+  <!-- ===== 翻译设置弹窗 ===== -->
+  <div id="settingsModal" class="sm-hidden">
+    <div class="sm-backdrop" data-sm-close="1"></div>
+    <div class="sm-box">
+      <div class="sm-head">
+        <span id="smTitle">⚙️ 翻译设置（网站）</span>
+        <button class="sm-close" id="smClose" title="关闭">×</button>
+      </div>
+      <div class="sm-body">
+
+      <!-- ★ 贴标签控制显隐：site-only 只在网站模式出现，comic-only 只在漫画模式出现 ★
+           注意：只贴标签，不搬位置 —— 上次搬 HTML 把结构搞坏过。 -->
+      <div class="row site-only">
+        <label>翻译引擎</label>
+        <select id="engine">
+          <option value="mymemory">MyMemory（免注册，装上就能用）</option>
+          <option value="zhipu">智谱 GLM（免费，但慢）</option>
+          <option value="siliconflow">硅基流动（免费，快）</option>
+          <option value="deepseek">DeepSeek（收费，质量最好）</option>
+          <option value="google">谷歌（需能访问 google）</option>
+          <option value="custom">自定义 AI（其它 OpenAI 兼容）</option>
+        </select>
+      </div>
+
+      <div class="row site-only" id="deepseekBox">
+        <label>DeepSeek API Key</label>
+        <input id="deepseekApiKey" type="password" placeholder="在 platform.deepseek.com 申请" />
+        <div style="height:6px"></div>
+        <label>模型</label>
+        <select id="deepseekModel">
+          <option value="deepseek-flash">deepseek-flash · 便宜快（推荐，约 1 分钱/页）</option>
+          <option value="deepseek-v4-pro">deepseek-v4-pro · 强但贵约 4 倍</option>
+        </select>
+        <div class="hint">
+          <b>要花钱，但质量最好</b>（用得惯就留着）。<br />
+          领 Key：platform.deepseek.com → API Keys → 创建 → <b>先充 10 元</b><br />
+          价格（元/百万 tokens）：<b>flash</b> 输入 1–2 / 输出 4–8；
+          <b>v4-pro</b> 输入 4.5–9 / 输出 13.5–27。<br />
+          <span style="color:#999">省钱技巧：工作日 9–12、14–18 点是高峰价，其余时间+周末<b>打五折</b>。<br />
+          注意 deepseek-chat 已于 2026-07-24 废弃，现在用 deepseek-flash。</span>
+        </div>
+      </div>
+
+      <div class="row" id="siliconflowBox">
+        <label>硅基流动 API Key</label>
+        <input id="siliconflowApiKey" type="password" placeholder="在 cloud.siliconflow.cn 领取" />
+        <div style="height:6px"></div>
+
+        <!-- ===== 网站模式：文字模型 ===== -->
+        <div class="site-only">
+          <label>网站翻译模型</label>
+          <select id="siliconflowModel">
+            <!-- 只放「翻译文字」的模型。
+                 看图模型在漫画模式那边，两边物理分开，用户选不错。 -->
+            <optgroup label="━━ 📝 翻译文字 · 免费 ━━">
+              <option value="THUDM/GLM-4-9B-0414">GLM-4-9B-0414 · 最快 219ms</option>
+              <option value="Qwen/Qwen2.5-7B-Instruct">Qwen2.5-7B · 很快 271ms</option>
+              <option value="tencent/Hunyuan-MT-7B" selected>Hunyuan-MT-7B · 394ms，译文最好（默认）</option>
+            </optgroup>
+            <optgroup label="━━ 📝 翻译文字 · 免费但慢 ━━">
+              <option value="Qwen/Qwen3.5-4B">Qwen3.5-4B · 6.7 秒，慢</option>
+              <option value="Qwen/Qwen3-8B">Qwen3-8B · 12.7 秒，带思考模式，别用</option>
+            </optgroup>
+            <optgroup label="━━ 📝 翻译文字 · 收费 ━━">
+              <option value="Qwen/Qwen3.5-9B">Qwen3.5-9B · 比免费快一点，但没必要花钱</option>
+              <option value="deepseek-ai/DeepSeek-V3.2">DeepSeek-V3.2 · 质量好，逐句翻太贵</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <!-- ===== 漫画模式：看图模型 ===== -->
+        <div class="comic-only">
+          <label>模型</label>
+          <select id="imageModel">
+            <!-- 只放「看图认字」的模型。以后有新的看图模型直接往这里加。 -->
+            <optgroup label="━━ 🔍 看图认字 · 免费 ━━">
+              <option value="Qwen/Qwen3-VL-30B-A3B-Instruct" selected>Qwen3-VL-30B · 10 秒，最准（默认）</option>
+              <option value="Qwen/Qwen3-VL-8B-Instruct">Qwen3-VL-8B · 反而更慢（31 秒）且更差</option>
+              <option value="deepseek-ai/DeepSeek-OCR">DeepSeek-OCR · 0.1 秒但输出乱码，别用</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="hint">
+          <b>领 Key</b>：cloud.siliconflow.cn → 注册 → API 密钥 → 新建<br />
+          <span style="color:#c0392b">⚠️ 账户余额必须 ≥ 0 才能用：余额为负时，连免费模型都会被拦
+          （实测报 402 余额不足）。</span><br />
+          <span style="color:#999">模型名必须带斜杠，如 tencent/Hunyuan-MT-7B。</span>
+        </div>
+      </div>
+
+      <div class="row site-only" id="zhipuBox">
+        <label>智谱 API Key</label>
+        <input id="zhipuApiKey" type="password" placeholder="在 bigmodel.cn 免费领取" />
+        <div style="height:6px"></div>
+        <label>模型（只有这些是免费的）</label>
+        <select id="zhipuModel">
+          <optgroup label="✅ 永久免费（官方定价页标注「免费」）">
+            <option value="glm-4-flash">glm-4-flash · 文本，最稳（推荐）</option>
+            <option value="glm-4-flash-250414">glm-4-flash-250414 · 文本，同上</option>
+            <option value="glm-4.7-flash">glm-4.7-flash · 文本，更强但常排队</option>
+            <option value="glm-4v-flash">glm-4v-flash · 看图认字（漫画用）</option>
+            <option value="glm-4.1v-thinking-flash">glm-4.1v-thinking-flash · 看图推理</option>
+            <option value="glm-4.6v-flash">glm-4.6v-flash · 看图+OCR，更强</option>
+          </optgroup>
+          <optgroup label="💰 要收费（避免误用）">
+            <option value="glm-4-flashx" disabled>glm-4-flashx · 收费，别选</option>
+            <option value="glm-5.3" disabled>glm-5.3 · 收费</option>
+            <option value="glm-4.6v" disabled>glm-4.6v · 收费</option>
+          </optgroup>
+        </select>
+        <div class="hint">
+          <b>智谱的三个要知道的事实：</b><br />
+          ① <b>慢</b> —— 免费模型限 <b>1 并发</b>，同一时刻只能翻一句。
+          插件已自动改成"一句一句翻"，不是它卡，是官方限制。<br />
+          ② <b>只有 flash 后缀的免费</b> —— 带 <b>X</b> 的（flashx / FlashX）
+          <b>都要收费</b>，人家已把它们标灰禁用，避免误扣钱。<br />
+          ③ <b>领 Key</b>：bigmodel.cn → 登录 → 头像 → API Key → 创建<br />
+          <span style="color:#999">Key 格式是两段带点的，比如 abc123...xyz.def456...uvw</span>
+        </div>
+      </div>
+
+      <div class="row site-only" id="mmEmailRow">
+        <label>MyMemory 邮箱（可选，填了额度涨 10 倍）</label>
+        <input id="myMemoryEmail" type="email" placeholder="你的邮箱（只用于提升免费额度）" />
+        <div class="hint">
+          <b>不填</b>：每天 5,000 字符（约 3–4 页）<br />
+          <b>填了</b>：每天 50,000 字符（约 30 页）← 官方支持的免费提升<br />
+          邮箱只发给 MyMemory 用于统计额度，插件不会存到别处。<br />
+          <span style="color:#c0392b">额度用完会报 429，这时可以：等明天、
+          填邮箱、或换成上面的智谱 GLM（永久免费）。</span>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>翻译成</label>
+        <select id="targetLang">
+          <option value="zh-CN">简体中文</option>
+          <option value="zh-TW">繁體中文</option>
+          <option value="en">English</option>
+          <option value="ja">日本語</option>
+          <option value="ko">한국어</option>
+        </select>
+      </div>
+
+      <div class="row site-only custom-only" id="customBox">
+        <label>接口地址（OpenAI 兼容）</label>
+        <input id="customBaseUrl" placeholder="https://api.deepseek.com" />
+        <div style="height:6px"></div>
+        <label>API Key</label>
+        <input id="customApiKey" type="password" placeholder="sk-..." />
+        <div style="height:6px"></div>
+        <label>模型（选便宜的就够用）</label>
+        <select id="customModel">
+          <option value="deepseek-flash">deepseek-flash · 便宜快（推荐）</option>
+          <option value="deepseek-v4-pro">deepseek-v4-pro · 贵，翻译没必要</option>
+          <option value="__custom__">其他模型（手动填）</option>
+        </select>
+        <div id="customModelBox" style="margin-top:6px; display:none;">
+          <input id="customModelManual" placeholder="填模型名" />
+        </div>
+        <div class="hint">
+          DeepSeek 官方价（元/百万 tokens）：<br />
+          <b>flash</b>：输入 1–2 元，输出 4–8 元<br />
+          <b>v4-pro</b>：输入 4.5–9 元，输出 13.5–27 元
+          <span style="color:#c0392b">（贵约 4 倍）</span><br />
+          翻译一页网页约 2000 tokens ≈ <b>1 分钱</b>
+        </div>
+      </div>
+      </div>
+      <div class="sm-foot">
+        <button class="btn btn-main sm-save" id="smSave">保存设置</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 折叠区 2：双语对照的外观 ===== -->
+  <div class="fold in-settings" id="foldLook">
+    <div class="fold-head" data-fold="foldLook">
+      <span>🎨 双语对照的外观</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="fold-body">
+      <div class="mode-badge">仅网站模式有效</div>
+      <div class="hint" style="margin-top:0; margin-bottom:10px;">
+        这里的设置只影响 <b>双语对照</b> 模式下的译文。
+        对照时原文还在，所以译文要<b>醒目</b>才好区分。
+      </div>
+
+      <div class="row">
+        <label>译文文字颜色</label>
+        <div class="color-row">
+          <input type="color" id="textColor" value="#FF3705" />
+          <button class="reset" id="textColorReset">恢复默认</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>译文背景色</label>
+        <div class="color-row">
+          <input type="color" id="bgColor" value="#FAFCFF" />
+          <button class="reset" id="bgColorReset">透明</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>波浪线颜色</label>
+        <div class="color-row">
+          <input type="color" id="underlineColor" value="#0B5FA5" />
+          <button class="reset" id="underlineReset">跟随文字</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>译文字号</label>
+        <div class="radio-row">
+          <label><input type="radio" name="fontMode" value="scale" checked /> 跟随原文</label>
+          <label><input type="radio" name="fontMode" value="fixed" /> 固定大小</label>
+        </div>
+
+        <div id="scaleBox">
+          <div class="font-row">
+            <input type="range" id="fontScale" min="0.7" max="1.6" step="0.05" value="1" />
+            <span class="val" id="fontScaleVal">100%</span>
+          </div>
+        </div>
+
+        <div id="fixedBox" style="display:none;">
+          <div class="font-row">
+            <input type="range" id="fontSize" min="10" max="28" step="1" value="16" />
+            <span class="val" id="fontSizeVal">16px</span>
+          </div>
+        </div>
+      </div>
+
+      <label style="margin-top:10px;">效果预览</label>
+      <div class="preview" id="lookPreview">
+        This is how the translation will look.
+      </div>
+
+      <button class="btn btn-mini" id="lookReset" style="margin-top:8px;">恢复默认</button>
+    </div>
+  </div>
+
+  <!-- ===== 折叠区 3：替换原文的外观（独立设置） ===== -->
+  <div class="fold in-settings" id="foldReplace">
+    <div class="fold-head" data-fold="foldReplace">
+      <span>🔄 替换原文的外观</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="fold-body">
+      <div class="mode-badge">仅网站模式有效</div>
+      <div class="hint" style="margin-top:0; margin-bottom:10px;">
+        这里的设置<b>只影响「直接替换原文」</b>模式。<br />
+        替换时原文被藏起来了，译文就是正文，所以默认<b>完全跟随原文样式</b>，
+        不再标成彩色。（想加提示色也可以自己开）
+      </div>
+
+      <div class="row">
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin-bottom:0;">
+          <input type="checkbox" id="replaceUseColor" style="width:auto;margin:0;" />
+          <span>给译文单独上色（默认关闭 = 跟随原文颜色）</span>
+        </label>
+      </div>
+
+      <div class="row" id="replaceColorRow" style="display:none;">
+        <label>替换模式下的译文颜色</label>
+        <div class="color-row">
+          <input type="color" id="replaceTextColor" value="#FF3705" />
+          <button class="reset" id="replaceColorReset">跟随原文</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin-bottom:0;">
+          <input type="checkbox" id="replaceUseUnderline" style="width:auto;margin:0;" />
+          <span>加波浪线（默认关闭）</span>
+        </label>
+      </div>
+
+      <div class="row">
+        <label>替换模式下的字号</label>
+        <div class="radio-row">
+          <label><input type="radio" name="replaceFontMode" value="scale" checked /> 跟随原文</label>
+          <label><input type="radio" name="replaceFontMode" value="fixed" /> 固定大小</label>
+        </div>
+
+        <div id="rScaleBox">
+          <div class="font-row">
+            <input type="range" id="replaceFontScale" min="0.7" max="1.6" step="0.05" value="1" />
+            <span class="val" id="replaceFontScaleVal">100%</span>
+          </div>
+        </div>
+
+        <div id="rFixedBox" style="display:none;">
+          <div class="font-row">
+            <input type="range" id="replaceFontSize" min="10" max="28" step="1" value="16" />
+            <span class="val" id="replaceFontSizeVal">16px</span>
+          </div>
+        </div>
+      </div>
+
+      <label style="margin-top:10px;">效果预览（替换后长这样）</label>
+      <div class="preview" id="replacePreview">
+        This is how the replaced text will look.
+      </div>
+
+      <button class="btn btn-mini" id="replaceReset" style="margin-top:8px;">恢复默认（跟随原文）</button>
+    </div>
+  </div>
+
+  <!-- ===== 折叠区 3：面板外观（插件自己的界面） ===== -->
+  <div class="fold in-settings" id="foldPanel">
+    <div class="fold-head" data-fold="foldPanel">
+      <span>🖼️ 面板外观（插件界面）</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="fold-body">
+      <div class="hint" style="margin-top:0; margin-bottom:10px;">
+        这里的设置只改<b>这个操作面板</b>的样子，跟网页上的译文无关。
+      </div>
+
+      <!-- ===== 皮肤（2026-10-17 新增）=====
+           三版皮肤都内置，用户自己挑。默认「极简白」。
+           为什么做成下拉而不是三个按钮？
+             面板只有 320px 宽，三个按钮挤一行看不全配色；
+             下拉里每项带一句说明，反而更好选。 -->
+      <div class="row">
+        <label>界面皮肤</label>
+        <select id="panelSkin">
+          <option value="minimal" selected>极简白 · 干净利落（默认）</option>
+          <option value="dark">深色科技 · 晚上不刺眼</option>
+          <option value="soft">圆润可爱 · 大圆角渐变</option>
+        </select>
+        <div class="hint">
+          换皮肤只改长相，<b>功能和布局一点不变</b>。<br />
+          下面的「面板底色 / 背景图 / 文字颜色」会在皮肤基础上生效。
+        </div>
+      </div>
+
+      <div class="row">
+        <label>面板底色</label>
+        <div class="color-row">
+          <input type="color" id="panelBg" value="#ffffff" />
+          <button class="reset" id="panelBgReset">恢复默认</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>面板背景图片（可选）</label>
+        <input type="file" id="panelImageFile" accept="image/*" style="font-size:11px;" />
+        <div class="btn-inline">
+          <button class="btn btn-mini" id="panelImageClear">清除背景图</button>
+        </div>
+
+        <div id="panelImageOpts" style="display:none; margin-top:6px;">
+          <div class="radio-row">
+            <label><input type="radio" name="panelFit" value="cover" checked /> 铺满</label>
+            <label><input type="radio" name="panelFit" value="contain" /> 完整显示</label>
+            <label><input type="radio" name="panelFit" value="repeat" /> 平铺</label>
+          </div>
+          <div class="font-row">
+            <label style="margin:0; white-space:nowrap;">白纱浓度</label>
+            <input type="range" id="panelVeil" min="0" max="0.92" step="0.02" value="0.72" />
+            <span class="val" id="panelVeilVal">72%</span>
+          </div>
+          <div class="hint" style="margin-top:4px;">
+            图太花就把「白纱浓度」调高，字会更清楚。
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>面板文字颜色</label>
+        <div class="color-row">
+          <input type="color" id="panelText" value="#222222" />
+          <button class="reset" id="panelTextReset">恢复默认</button>
+        </div>
+      </div>
+
+      <button class="btn btn-mini" id="panelReset" style="margin-top:4px;">全部恢复默认</button>
+    </div>
+  </div>
+
+  <!-- ===== 功能介绍入口（点它弹窗，不再往下展开）=====
+       2026-10-17 改：主人要求跟「赏」一样用弹窗展示，
+       因为介绍内容很长，往下展开会把整个「设」页拉得很长。 -->
+  <div class="fold in-settings" id="foldGuideEntry">
+    <div class="fold-head guide-entry" id="guideOpen">
+      <span>📖 功能介绍（第一次用先看这个）</span>
+      <span class="arrow guide-arrow">▶</span>
+    </div>
+  </div>
+
+  <!-- ===== 折叠区 4：快捷键说明 ===== -->
+  <div class="fold in-settings" id="foldHelp">
+    <div class="fold-head" data-fold="foldHelp">
+      <span>⌨️ 快捷键说明</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="fold-body">
+      <div class="hint" style="font-size:12px; color:#555; line-height:1.9;">
+        <b>翻译选中的文字</b><br />
+        · 右键 → 「用 LiteTranslate 翻译这段」（推荐）<br />
+        · 或按 <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd><br />
+        <span style="color:#999">
+          （快捷键可能被浏览器占用，无效时可在<br />
+          <b>edge://extensions/shortcuts</b> 里改键）
+        </span>
+        <div style="height:8px"></div>
+        <b>关闭译文弹窗</b><br />
+        · 点弹窗右上角 <kbd>×</kbd>，或按 <kbd>Esc</kbd>，或点别处
+        <div style="height:8px"></div>
+        <b>切换显示方式</b><br />
+        · 面板里的「显示方式」，切换后已翻页面立刻变
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 折叠区 5：引擎诊断 ===== -->
+  <div class="fold in-settings" id="foldDiag">
+    <div class="fold-head" data-fold="foldDiag">
+      <span>🔧 引擎诊断</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="fold-body">
+      <button class="btn btn-mini" id="test">测试当前引擎</button>
+      <div style="height:6px"></div>
+      <button class="btn btn-mini" id="testAll">一键测所有引擎</button>
+      <div class="hint">
+        点开始翻译后，状态栏会显示「本页共 N 段，其中只有 M 段在屏幕内」。
+        这个 M 就是它真正去翻译的数量。
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 左下角：作者入口（赏 + B站） ===== -->
+  <div id="authorDock">
+    <button id="btnBili" class="dock-btn dock-bili" title="作者的 B 站">
+      <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
+        <path fill="currentColor" d="M18.2 3.4h-1.9l1.2 1.2a1 1 0 0 1-1.4 1.4L14.2 3.4H9.8L7 6a1 1 0 0 1-1.4-1.4l1.2-1.2H4.9A2.9 2.9 0 0 0 2 6.3v10.3a2.9 2.9 0 0 0 2.9 2.9h13.3a2.9 2.9 0 0 0 2.9-2.9V6.3a2.9 2.9 0 0 0-2.9-2.9Zm1 13.2a1 1 0 0 1-1 1H5.9a1 1 0 0 1-1-1V7.2a1 1 0 0 1 1-1h12.3a1 1 0 0 1 1 1Zm-9.6-6.4a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4Zm5.8 0a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4Z"/>
+      </svg>
+    </button>
+    <button id="btnDonate" class="dock-btn dock-donate" title="打赏作者">赏</button>
+  </div>
+
+    <!-- ===== 功能介绍弹窗（跟「赏」同款交互：点遮罩 / × / Esc 关闭）===== -->
+    <div id="guideModal" class="gm-hidden">
+      <div class="gm-backdrop" data-gm-close="1"></div>
+      <div class="gm-box">
+        <div class="gm-head">
+          <span>📖 功能介绍</span>
+          <button class="gm-close" id="gmClose" title="关闭">×</button>
+        </div>
+        <div class="gm-body">
+
+
+      <div class="guide-lead">
+        <b>一句话：只翻你眼前看得见的那部分。</b><br />
+        它的做法是「你滚到哪、就翻到哪」—— 页面不用等全部翻完，
+        长网页也不会一开就卡；没滚到的部分不处理，省时间也省钱。
+        译文默认插在原文下方，原文还在，对不上时一眼能对照。
+      </div>
+
+      <!-- ---------- 两个模式 ---------- -->
+      <div class="guide-h">🔄 两种模式，面板右下角切换</div>
+      <table class="guide-t">
+        <tr>
+          <td class="gk">网站模式</td>
+          <td>翻网页上的<b>文字</b>。看新闻、文档、论坛、GitHub 用这个。</td>
+        </tr>
+        <tr>
+          <td class="gk">漫画模式</td>
+          <td>翻<b>图片里的字</b>。看韩漫、日漫、外文截图用这个。</td>
+        </tr>
+      </table>
+      <div class="guide-note">
+        两个模式的设置<b>完全分开</b>：网站模式用文字模型、漫画模式用看图模型，
+        Key 和额度互不抢占。切模式时，另一边的翻译会自动停掉。
+      </div>
+
+      <!-- ---------- 网站模式 ---------- -->
+      <div class="guide-h">📝 网站模式能干什么</div>
+
+      <div class="guide-item">
+        <b>① 整页翻译</b><br />
+        选「翻译范围 = 整页翻译」→ 点「开始翻译本页」。
+        译文会插在每段原文下面，滚到哪翻到哪。
+      </div>
+
+      <div class="guide-item">
+        <b>② 自动翻译</b><br />
+        勾上「打开网页就自动翻译」，以后打开外文网页<b>不用点</b>，它自己翻。
+      </div>
+
+      <div class="guide-item">
+        <b>③ 只翻选中的</b><br />
+        选中一段文字 → 右键 →「用 LiteTranslate 翻译这段」。
+        适合只想看一小段的场合。
+      </div>
+
+      <div class="guide-item">
+        <b>④ 手动翻译（漏翻的地方）</b><br />
+        有些文字被跳过了？粘到面板下面的「手动翻译」框里，点「翻译这段」。
+      </div>
+
+      <div class="guide-item">
+        <b>⑤ 显示方式：对照 / 替换</b><br />
+        <b>双语对照</b> —— 原文留着，译文在下方（学外语推荐）。<br />
+        <b>直接替换</b> —— 原文藏起来，只看译文（看小说、看漫画推荐）。
+      </div>
+
+      <div class="guide-item">
+        <b>⑥ 翻译力度：精翻 / 全翻译</b><br />
+        <b>精翻</b> —— 只翻成段的正文，跳过按钮和标签，<b>译文干净</b>。<br />
+        <b>全翻译</b> —— 页面上能翻的都翻，连 <code>Sign in</code>、
+        <code>Password</code>、<code>忘记密码</code> 都翻。<br />
+        <span class="guide-warn">
+          ⚠️ 英语不好、连登录框都读不懂的人，请选<b>全翻译</b>。
+          代价是译文会密一些。
+        </span>
+      </div>
+
+      <!-- ---------- 漫画模式 ---------- -->
+      <div class="guide-h">🖼️ 漫画模式能干什么</div>
+
+      <div class="guide-item">
+        <b>① 右键翻译图片</b><br />
+        在任意图片上右键 →「翻译这张图」。
+        <b>真图、背景图、canvas 都认</b>，不挑网站。
+      </div>
+
+      <div class="guide-item">
+        <b>② 自动翻译图片</b><br />
+        勾上「自动翻译（滚到哪翻到哪）」，图片滚进屏幕就自动翻，不用一张张点。
+      </div>
+
+      <div class="guide-item">
+        <b>③ 截图翻译（万能兜底）</b><br />
+        点「📷 截图翻译」→ 屏幕变暗 → <b>拖鼠标框住要翻的地方</b> → 自动翻。<br />
+        <span class="guide-note2">
+          什么都能翻：漫画、视频画面、跨域图片、抓不到图的网站。
+        </span>
+      </div>
+
+      <div class="guide-item">
+        <b>④ 译文长什么样</b><br />
+        译文不会盖在原图上（那样会挡住画面），而是<b>贴在图片下方</b>，
+        按「第几处：原文 → 译文」一行行列出。<br />
+        可以调：字体颜色、底色、字号，也能勾上「双语对照」同时看原文。
+      </div>
+
+      <div class="guide-item">
+        <b>⑤ 看图模型</b><br />
+        默认 <code>Qwen3-VL-30B</code>（免费、最准，一张约 10~30 秒）。
+        想换在「⚙️ 翻译设置（漫画）」里选。
+      </div>
+
+      <!-- ---------- 设置页 ---------- -->
+      <div class="guide-h">⚙️ 「设」里都有什么</div>
+
+      <table class="guide-t">
+        <tr>
+          <td class="gk">⚙️ 翻译设置（网站）</td>
+          <td>网站翻译用哪个引擎、哪个模型、填 Key。六种引擎可选。</td>
+        </tr>
+        <tr>
+          <td class="gk">⚙️ 翻译设置（漫画）</td>
+          <td>漫画翻译只需要硅基流动（唯一能看图的），填 Key、选用哪个看图模型。</td>
+        </tr>
+        <tr>
+          <td class="gk">🎨 双语对照的外观</td>
+          <td><b>仅网站模式</b>。对照模式下译文长什么样（颜色、波浪线、字号）。</td>
+        </tr>
+        <tr>
+          <td class="gk">🔄 替换原文的外观</td>
+          <td><b>仅网站模式</b>。替换模式下译文长什么样（默认跟随原文样式）。</td>
+        </tr>
+        <tr>
+          <td class="gk">🖼️ 面板外观</td>
+          <td>
+            改<b>这个操作面板本身</b>的样子，跟网页译文无关。<br />
+            在这里可以：换<b>界面皮肤</b>（极简白 / 深色科技 / 圆润可爱）、
+            改面板底色、放背景图、改文字颜色。
+          </td>
+        </tr>
+        <tr>
+          <td class="gk">⌨️ 快捷键说明</td>
+          <td>键盘操作一览。</td>
+        </tr>
+        <tr>
+          <td class="gk">🔧 引擎诊断</td>
+          <td>哪个引擎连不通，在这里测一下。</td>
+        </tr>
+      </table>
+
+      <!-- ---------- 引擎 ---------- -->
+      <div class="guide-h">🔌 引擎怎么选</div>
+      <table class="guide-t">
+        <tr>
+          <td class="gk">MyMemory</td>
+          <td><b>免注册、装上就能用</b>（默认）。额度按 IP，够日常用。</td>
+        </tr>
+        <tr>
+          <td class="gk">硅基流动</td>
+          <td><b>推荐</b>。免费、快，而且<b>唯一支持看图</b>的引擎。要填 Key。</td>
+        </tr>
+        <tr>
+          <td class="gk">智谱 GLM</td>
+          <td>免费，但要填 Key，且只能翻文字。</td>
+        </tr>
+        <tr>
+          <td class="gk">DeepSeek</td>
+          <td>收费，质量最好。逐句翻比较贵。</td>
+        </tr>
+        <tr>
+          <td class="gk">谷歌</td>
+          <td>不用 Key，但需要能访问谷歌。而且官方接口现在经常封自动请求。</td>
+        </tr>
+      </table>
+
+      <div class="guide-note">
+        <b>第一次用建议</b>：什么都不用配，默认的 MyMemory 就能翻文字；
+        想看漫画，去「⚙️ 翻译设置（漫画）」填一个硅基流动的 Key（免费领）。
+      </div>
+
+      <!-- ---------- 常见问题 ---------- -->
+      <div class="guide-h">❓ 常见问题</div>
+
+      <div class="guide-q">Q：某段文字没翻？</div>
+      <div class="guide-a">
+        A：① 先看外面左上角「翻译力度」—— 如果选的是「精翻」，
+        按钮、标签这类短词本来就会跳过，改成「全翻译」再试。<br />
+        ② 还是没翻，就复制那段到面板下面的「手动翻译」框里。
+      </div>
+
+      <div class="guide-q">Q：图片上的译文看不到？</div>
+      <div class="guide-a">
+        A：译文贴在<b>图片下方</b>，往下滚一点点就能看到。如果图片特别大，
+        译文条会跟着图片宽度走。
+      </div>
+
+      <div class="guide-q">Q：改了设置没生效？</div>
+      <div class="guide-a">
+        A：影响「翻哪些内容」的设置（力度、范围、显示方式），
+        改完要<b>重新点「开始翻译本页」</b>。已经翻过的段落不会自动重来。
+      </div>
+
+      <div class="guide-q">Q：提示「余额必须 ≥ 0」？</div>
+      <div class="guide-a">
+        A：硅基流动账户欠费时，<b>连免费模型都会被拦</b>（实测报 402）。
+        去 cloud.siliconflow.cn 充值或确认余额不是负数。
+      </div>
+
+      <div class="guide-q">Q：右键没看到「翻译这张图」？</div>
+      <div class="guide-a">
+        A：① 确认「翻译图片里的文字」总开关已打开。<br />
+        ② 刚重载过插件的话，页面里的旧脚本已失效，
+        <b>按 Ctrl+Shift+R 强刷页面</b>再试。
+      </div>
+
+      <div class="guide-q">Q：会不会偷偷花钱？</div>
+      <div class="guide-a">
+        A：不会。<b>自动翻译默认是关的</b>，所有可能产生费用的操作
+        （整页翻译、自动翻图）都要您先打开开关。
+        而且每一张图翻过的都会记住，不会重复翻。
+      </div>
+
+      <!-- ---------- 底部：一段真心话 ----------
+           给用户看的，不是给开发者看的。
+           所以：不用内部称呼、不自夸、不煽情，就说清"这东西怎么来的"。 -->
+      <div class="guide-words">
+        <div class="guide-words-inner">
+          <p class="guide-words-open">这个是我和我的小鲸鱼一起做的，希望它能帮到你。</p>
+
+          <p>它现在肯定还有不顺手的地方。
+             如果你用着哪里别扭，希望你能说一声 ——
+             说不一定会马上改好，但会记下来。</p>
+
+          <p class="guide-sign">—— 做这个小工具的小人</p>
+        </div>
+      </div>
+
+        </div>
+      </div>
+    </div>
+
+  <!-- ===== 图片弹窗（打赏 / B站名片共用） ===== -->
+  <div id="authorModal" class="am-hidden">
+    <div class="am-backdrop" data-am-close="1"></div>
+    <div class="am-box">
+      <button class="am-close" id="amClose" title="关闭">×</button>
+      <img id="amImg" alt="作者信息" />
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

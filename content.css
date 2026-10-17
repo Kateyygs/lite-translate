@@ -1,0 +1,465 @@
+/*
+ * LiteTranslate — 样式
+ *
+ * ★ contain / content-visibility 是「不卡」的关键 ★
+ *
+ * ----------------------------------------------------------------
+ * ★ v0.4：两种显示方式的外观完全分开 ★
+ *
+ *   双语对照（bilingual）—— 译文是"标注"，要醒目
+ *       --lt-color     译文文字颜色
+ *       --lt-bg        译文背景色
+ *       --lt-deco      译文装饰（波浪线等）
+ *       --lt-scale / --lt-font-size   字号
+ *
+ *   直接替换（replace）—— 译文就是"正文"，要像原文
+ *       --lt-r-color   译文文字颜色（不设 = 跟随原文）
+ *       --lt-r-deco    译文装饰（默认无）
+ *       --lt-r-scale / --lt-r-font-size   字号
+ *
+ *   为什么要分开？
+ *     对照模式下原文还在，译文必须"跳出来"才分得清；
+ *     替换模式下原文被藏了，译文再跳出来就成了"满屏彩字"，
+ *     读起来很累。所以两者的默认值故意不同。
+ * ----------------------------------------------------------------
+ */
+
+/* ================================================================
+   变量默认值
+   ================================================================ */
+html {
+  /* ---- 双语对照：醒目标注风 ---- */
+  --lt-color: #FF3705;              /* 译文文字：与原文一眼区分 */
+  --lt-bg: #FAFCFF;                 /* 译文背景：极浅蓝白 */
+  --lt-deco: underline wavy #0B5FA5;/* 下方波浪线 */
+  --lt-scale: 1;
+  --lt-font-size: 0;                /* 0 = 用比例 */
+
+  /* ---- 直接替换：正文风（默认完全跟随原文） ---- */
+  --lt-r-color: inherit;            /* 跟随原文颜色 */
+  --lt-r-deco: none;                /* 不加波浪线 */
+  --lt-r-scale: 1;
+  --lt-r-font-size: 0;
+}
+
+/* ================================================================
+   译文块（两种模式共用结构）
+   ================================================================ */
+.lt-trans {
+  display: block;
+  margin: 0.5em 0 0.35em;
+  padding: 0.5em 0.75em 0.55em;
+  border-radius: 0 4px 4px 0;
+  line-height: 1.7;
+  font-weight: normal;
+  text-align: start;
+  font-style: normal;
+
+  /* 长文本别撑破布局 */
+  overflow-wrap: break-word;
+  word-break: break-word;
+
+  /*
+   * ↓↓↓ 隔离三件套（不卡的关键） ↓↓↓
+   */
+  contain: content;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 1.9em;
+}
+
+/* ---------- 双语对照模式的外观 ---------- */
+html:not(.lt-replace) .lt-trans {
+  border-left: 3px solid var(--lt-color);
+  color: var(--lt-color);
+
+  /* 背景：纯色 */
+  background-color: var(--lt-bg);
+
+  text-decoration: var(--lt-deco, none);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* 对照模式字号：固定值优先，否则按比例 */
+html:not(.lt-replace)[data-lt-fixed-font="1"] .lt-trans {
+  font-size: var(--lt-font-size, 16px);
+}
+html:not(.lt-replace):not([data-lt-fixed-font="1"]) .lt-trans {
+  font-size: calc(1em * var(--lt-scale, 1));
+}
+
+/* ================================================================
+   替换模式（replace）
+   ----------------------------------------------------------------
+   做法：把原文文本节点包进 <span class="lt-orig">，然后隐藏它。
+   用「包起来」而不是「删掉」，好处是切回双语模式可以干净还原，
+   不用重新翻译一遍。
+   ================================================================ */
+html.lt-replace .lt-orig {
+  display: none !important;
+}
+
+/* 替换模式：译文变成"正文"，不要底色、不要左边框 */
+html.lt-replace .lt-trans {
+  margin: 0;
+  padding: 0;
+  border-left: none;
+  background: none;
+  display: inline;
+
+  /* ★ 关键：颜色默认继承原文（--lt-r-color 的默认值就是 inherit） */
+  color: var(--lt-r-color, inherit);
+  text-decoration: var(--lt-r-deco, none);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+
+  contain: none;
+  content-visibility: visible;
+}
+
+/* 替换模式字号 */
+html.lt-replace[data-lt-r-fixed-font="1"] .lt-trans {
+  font-size: var(--lt-r-font-size, 16px);
+}
+html.lt-replace:not([data-lt-r-fixed-font="1"]) .lt-trans {
+  font-size: calc(1em * var(--lt-r-scale, 1));
+}
+
+/* ================================================================
+   深色模式
+   ----------------------------------------------------------------
+   不在这里硬改颜色，否则会覆盖用户的选择。
+   深浅适配由 content.js 的 applyAppearance() 负责 ——
+   只在「深色页面 + 用户用默认浅背景」时换成半透明。
+   ================================================================ */
+
+/* ================================================================
+   划词翻译的浮动提示
+   ================================================================ */
+.lt-tip {
+  position: absolute;
+  z-index: 2147483647;          /* 压过几乎所有页面元素 */
+  max-width: 460px;
+  min-width: 180px;
+  background: #1f2937;
+  color: #f9fafb;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.65;
+  font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .32);
+  contain: content;
+}
+
+.lt-tip-err {
+  background: #7f1d1d;
+}
+
+.lt-tip-body {
+  padding: 10px 12px 8px;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.lt-tip-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 0 8px 8px;
+}
+
+.lt-tip-btn {
+  border: none;
+  background: rgba(255, 255, 255, .14);
+  color: #f9fafb;
+  font-size: 12px;
+  font-family: inherit;
+  padding: 3px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1.5;
+  transition: background .12s;
+}
+.lt-tip-btn:hover {
+  background: rgba(255, 255, 255, .26);
+}
+.lt-tip-close {
+  padding: 3px 8px;
+  font-size: 15px;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+@media (prefers-color-scheme: dark) {
+  .lt-tip {
+    background: #111827;
+    color: #f3f4f6;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, .5);
+  }
+}
+
+/* ================================================================
+   状态提示
+   ================================================================ */
+
+/* 翻译失败的段落：极轻的提示（红线太扎眼，满屏框会以为页面坏了） */
+.lt-failed {
+  text-decoration: underline dotted rgba(220, 80, 80, .55);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* 没开启翻译时，确保不留任何痕迹 */
+html:not(.lt-on) .lt-trans {
+  display: none !important;
+}
+
+/* ================================================================
+   图片翻译（看图认字）
+   ================================================================ */
+
+
+/* ---------- 结果弹窗 ---------- */
+.lt-imgbox {
+  position: absolute;
+  z-index: 2147483646;
+  width: 320px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, .22);
+  font: 13px/1.6 "Microsoft YaHei", system-ui, sans-serif;
+  overflow: hidden;
+  /* 与页面内容隔离，避免被网站的全局样式带偏 */
+  contain: content;
+}
+
+.lt-imgbox-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fafafa;
+  flex: 0 0 auto;
+}
+.lt-imgbox-title {
+  font-weight: 600;
+  font-size: 13px;
+}
+.lt-imgbox-x {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #6b7280;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+.lt-imgbox-x:hover {
+  background: #efefef;
+  color: #111827;
+}
+
+.lt-imgbox-body {
+  padding: 10px 12px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+
+/* 加载中的小转圈 */
+.lt-imgbox-spin {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 7px;
+  border: 2px solid #d1d5db;
+  border-top-color: #4a90d9;
+  border-radius: 50%;
+  animation: lt-spin .7s linear infinite;
+  vertical-align: -1px;
+}
+@keyframes lt-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 一行：上面原文，下面译文 */
+.lt-imgrow {
+  padding: 6px 0;
+  border-bottom: 1px dashed #f0f0f0;
+}
+.lt-imgrow:last-child { border-bottom: none; }
+.lt-imgsrc {
+  color: #6b7280;
+  font-size: 12px;
+  word-break: break-word;
+}
+.lt-imgdst {
+  color: #111827;
+  font-weight: 600;
+  margin-top: 2px;
+  word-break: break-word;
+}
+
+.lt-imgbox-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-top: 1px solid #f0f0f0;
+  background: #fafafa;
+  flex: 0 0 auto;
+}
+.lt-imgcopy {
+  padding: 4px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.lt-imgcopy:hover { background: #f5f5f5; }
+.lt-imgmeta {
+  color: #9ca3af;
+  font-size: 11px;
+}
+
+.lt-imgbox-empty {
+  color: #9ca3af;
+  text-align: center;
+  padding: 6px 0;
+}
+.lt-imgbox-err {
+  color: #b91c1c;
+  font-size: 12px;
+  word-break: break-word;
+}
+
+/* ================================================================
+   图片下方的「字幕条」
+   ================================================================
+   为什么贴在图下面而不是盖在图上？
+     免费可用的看图模型都不返回文字坐标，没法知道该盖在哪。
+     贴底部既不挡画面，也能把译文字号放大（漫画气泡里的字往往很小）。
+   ================================================================ */
+.lt-imgcap {
+  position: absolute;
+  z-index: 2147483645;
+  background: rgba(17, 24, 39, .93);   /* 会被 JS 内联覆盖成用户选的颜色 */
+  color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .3);
+  font: 15px/1.65 "Microsoft YaHei", system-ui, sans-serif;
+  overflow: hidden;
+  /* 不参与网站布局计算，避免把页面挤变形 */
+  contain: content;
+  /* 用户可自定义的变量（由 content.js 内联设置） */
+  --lt-cap-color: #ffffff;
+  --lt-cap-size: 15px;
+}
+
+.lt-imgcap-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 11px;
+  font-size: 11px;
+  color: #9ca3af;
+  background: rgba(255, 255, 255, .06);
+  cursor: pointer;
+  user-select: none;
+}
+.lt-imgcap-head:hover { background: rgba(255, 255, 255, .1); }
+
+.lt-imgcap-x {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.lt-imgcap-x:hover { background: rgba(255, 255, 255, .15); color: #fff; }
+
+.lt-imgcap-body {
+  padding: 9px 12px 11px;
+  max-height: 42vh;
+  overflow-y: auto;
+}
+
+/* 中文译文：主角，字号和颜色都可由用户设置 */
+.lt-imgcap-cn {
+  color: var(--lt-cap-color, #fff);
+  font-weight: 600;
+  font-size: var(--lt-cap-size, 15px);
+  word-break: break-word;
+}
+
+/* 原文：默认藏起来（太乱），点标题栏或勾选「双语对照」才显示 */
+.lt-imgcap-src {
+  display: none;
+  color: rgba(255, 255, 255, .55);
+  font-size: 12px;
+  margin: 1px 0 7px;
+  word-break: break-word;
+}
+/* 两种展开方式：点标题栏，或在面板里勾「双语对照」 */
+.lt-imgcap.show-src .lt-imgcap-src { display: block; }
+.lt-imgcap.show-src .lt-imgcap-cn { margin-top: 6px; }
+
+/* ================================================================
+   截图翻译：框选时的遮罩层
+   ================================================================
+   为什么用半透明黑而不是全黑？
+     全黑会让用户看不清要框哪儿。半透明能看见底下的画面。
+   ================================================================ */
+.lt-shotmask {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;      /* 盖住页面上一切东西 */
+  background: rgba(0, 0, 0, .45);
+  cursor: crosshair;
+  user-select: none;
+}
+
+/* 用户拖出来的选框：中间透明（能看清内容），边框高亮 */
+.lt-shotrect {
+  position: absolute;
+  display: none;
+  border: 2px solid #4a90d9;
+  background: rgba(74, 144, 217, .12);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, .25);  /* 框外再压暗一层，聚焦视线 */
+  pointer-events: none;
+  border-radius: 2px;
+}
+
+/* 顶部提示条 */
+.lt-shottip {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(17, 24, 39, .92);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font: 13px/1.4 "Microsoft YaHei", system-ui, sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .3);
+}

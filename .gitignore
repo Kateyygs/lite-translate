@@ -1,0 +1,32 @@
+# 依赖与构建产物（本项目无依赖，但保留以防将来加）
+node_modules/
+dist/
+build/
+
+# 打包产物
+*.zip
+*.crx
+*.pem
+
+# 密钥 —— 绝对不能提交（历史上踩过，有人把 Key 带进扩展包）
+*.key
+*.pem
+*密钥*
+*apikey*
+.env
+.env.*
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系统
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 日志
+*.log
+npm-debug.log*

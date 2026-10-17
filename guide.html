@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>功能介绍 · LiteTranslate</title>
+<meta name="color-scheme" content="light dark" />
+<link rel="stylesheet" href="guide.css" />
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <h1>📖 功能介绍</h1>
+    <button class="close" id="btnClose" title="关闭（Esc）">×</button>
+  </header>
+
+  <main class="body" id="bodyScroll">
+
+    <div class="guide-lead">
+      <b>一句话：只翻你眼前看得见的那部分。</b><br />
+      它的做法是「你滚到哪、就翻到哪」—— 页面不用等全部翻完，
+      长网页也不会一开就卡；没滚到的部分不处理，省时间也省钱。
+      译文默认插在原文下方，原文还在，对不上时一眼能对照。
+    </div>
+
+    <!-- ---------- 两个模式 ---------- -->
+    <div class="guide-h">🔄 两种模式，面板右下角切换</div>
+    <table class="guide-t">
+      <tr>
+        <td class="gk">网站模式</td>
+        <td>翻网页上的<b>文字</b>。看新闻、文档、论坛、GitHub 用这个。</td>
+      </tr>
+      <tr>
+        <td class="gk">漫画模式</td>
+        <td>翻<b>图片里的字</b>。看韩漫、日漫、外文截图用这个。</td>
+      </tr>
+    </table>
+    <div class="guide-note">
+      两个模式的设置<b>完全分开</b>：网站模式用文字模型、漫画模式用看图模型，
+      Key 和额度互不抢占。切模式时，另一边的翻译会自动停掉。
+    </div>
+
+    <!-- ---------- 网站模式 ---------- -->
+    <div class="guide-h">📝 网站模式能干什么</div>
+
+    <div class="guide-item">
+      <b>① 整页翻译</b><br />
+      选「翻译范围 = 整页翻译」→ 点「开始翻译本页」。
+      译文会插在每段原文下面，滚到哪翻到哪。
+    </div>
+
+    <div class="guide-item">
+      <b>② 自动翻译</b><br />
+      勾上「打开网页就自动翻译」，以后打开外文网页<b>不用点</b>，它自己翻。
+    </div>
+
+    <div class="guide-item">
+      <b>③ 只翻选中的</b><br />
+      选中一段文字 → 右键 →「用 LiteTranslate 翻译这段」。
+      适合只想看一小段的场合。
+    </div>
+
+    <div class="guide-item">
+      <b>④ 手动翻译（漏翻的地方）</b><br />
+      有些文字被跳过了？粘到面板下面的「手动翻译」框里，点「翻译这段」。
+    </div>
+
+    <div class="guide-item">
+      <b>⑤ 显示方式：对照 / 替换</b><br />
+      <b>双语对照</b> —— 原文留着，译文在下方（学外语推荐）。<br />
+      <b>直接替换</b> —— 原文藏起来，只看译文（看小说、看漫画推荐）。
+    </div>
+
+    <div class="guide-item">
+      <b>⑥ 翻译力度：精翻 / 全翻译</b><br />
+      <b>精翻</b> —— 只翻成段的正文，跳过按钮和标签，<b>译文干净</b>。<br />
+      <b>全翻译</b> —— 页面上能翻的都翻，连 <code>Sign in</code>、
+      <code>Password</code> 都翻。<br />
+      <span class="guide-warn">
+        ⚠️ 英语不好、连登录框都读不懂的人，请选<b>全翻译</b>。
+        代价是译文会密一些。
+      </span>
+    </div>
+
+    <!-- ---------- 漫画模式 ---------- -->
+    <div class="guide-h">🖼️ 漫画模式能干什么</div>
+
+    <div class="guide-item">
+      <b>① 右键翻译图片</b><br />
+      在任意图片上右键 →「翻译这张图」。
+      <b>真图、背景图、canvas 都认</b>，不挑网站。
+    </div>
+
+    <div class="guide-item">
+      <b>② 自动翻译图片</b><br />
+      勾上「自动翻译（滚到哪翻到哪）」，图片滚进屏幕就自动翻，不用一张张点。
+    </div>
+
+    <div class="guide-item">
+      <b>③ 截图翻译（万能兜底）</b><br />
+      点「📷 截图翻译」→ 屏幕变暗 → <b>拖鼠标框住要翻的地方</b> → 自动翻。<br />
+      <span class="guide-note2">
+        什么都能翻：漫画、视频画面、跨域图片、抓不到图的网站。
+      </span>
+    </div>
+
+    <div class="guide-item">
+      <b>④ 译文长什么样</b><br />
+      译文不会盖在原图上（那样会挡住画面），而是<b>贴在图片下方</b>，
+      按「第几处：原文 → 译文」一行行列出。<br />
+      可以调：字体颜色、底色、字号，也能勾上「双语对照」同时看原文。
+    </div>
+
+    <div class="guide-item">
+      <b>⑤ 看图模型</b><br />
+      默认 <code>Qwen3-VL-30B</code>（免费、最准，一张约 10~30 秒）。
+      想换在「⚙️ 翻译设置（漫画）」里选。
+    </div>
+
+    <!-- ---------- 设置页 ---------- -->
+    <div class="guide-h">⚙️ 「设」里都有什么</div>
+
+    <table class="guide-t">
+      <tr>
+        <td class="gk">⚙️ 翻译设置（网站）</td>
+        <td>网站翻译用哪个引擎、哪个模型、填 Key。六种引擎可选。</td>
+      </tr>
+      <tr>
+        <td class="gk">⚙️ 翻译设置（漫画）</td>
+        <td>漫画翻译只需要硅基流动（唯一能看图的），填 Key、选用哪个看图模型。</td>
+      </tr>
+      <tr>
+        <td class="gk">🎨 双语对照的外观</td>
+        <td><b>仅网站模式</b>。对照模式下译文长什么样（颜色、波浪线、字号）。</td>
+      </tr>
+      <tr>
+        <td class="gk">🔄 替换原文的外观</td>
+        <td><b>仅网站模式</b>。替换模式下译文长什么样（默认跟随原文样式）。</td>
+      </tr>
+      <tr>
+        <td class="gk">🖼️ 面板外观</td>
+        <td>
+          改<b>这个操作面板本身</b>的样子，跟网页译文无关。<br />
+          在这里可以：换<b>界面皮肤</b>（极简白 / 深色科技 / 圆润可爱）、
+          改面板底色、放背景图、改文字颜色。
+        </td>
+      </tr>
+      <tr>
+        <td class="gk">⌨️ 快捷键说明</td>
+        <td>键盘操作一览。</td>
+      </tr>
+      <tr>
+        <td class="gk">🔧 引擎诊断</td>
+        <td>哪个引擎连不通，在这里测一下。</td>
+      </tr>
+    </table>
+
+    <!-- ---------- 引擎 ---------- -->
+    <div class="guide-h">🔌 引擎怎么选</div>
+    <table class="guide-t">
+      <tr>
+        <td class="gk">MyMemory</td>
+        <td><b>免注册、装上就能用</b>（默认）。额度按 IP，够日常用。</td>
+      </tr>
+      <tr>
+        <td class="gk">硅基流动</td>
+        <td><b>推荐</b>。免费、快，而且<b>唯一支持看图</b>的引擎。要填 Key。</td>
+      </tr>
+      <tr>
+        <td class="gk">智谱 GLM</td>
+        <td>免费，但要填 Key，且只能翻文字。</td>
+      </tr>
+      <tr>
+        <td class="gk">DeepSeek</td>
+        <td>收费，质量最好。逐句翻比较贵。</td>
+      </tr>
+      <tr>
+        <td class="gk">谷歌</td>
+        <td>不用 Key，但需要能访问谷歌。而且官方接口现在经常封自动请求。</td>
+      </tr>
+    </table>
+
+    <div class="guide-note">
+      <b>第一次用建议</b>：什么都不用配，默认的 MyMemory 就能翻文字；
+      想看漫画，去「⚙️ 翻译设置（漫画）」填一个硅基流动的 Key（免费领）。
+    </div>
+
+    <!-- ---------- 常见问题 ---------- -->
+    <div class="guide-h">❓ 常见问题</div>
+
+    <div class="guide-q">Q：某段文字没翻？</div>
+    <div class="guide-a">
+      A：① 先看外面左上角「翻译力度」—— 如果选的是「精翻」，
+      按钮、标签这类短词本来就会跳过，改成「全翻译」再试。<br />
+      ② 还是没翻，就复制那段到面板下面的「手动翻译」框里。
+    </div>
+
+    <div class="guide-q">Q：图片上的译文看不到？</div>
+    <div class="guide-a">
+      A：译文贴在<b>图片下方</b>，往下滚一点点就能看到。如果图片特别大，
+      译文条会跟着图片宽度走。
+    </div>
+
+    <div class="guide-q">Q：改了设置没生效？</div>
+    <div class="guide-a">
+      A：影响「翻哪些内容」的设置（力度、范围、显示方式），
+      改完要<b>重新点「开始翻译本页」</b>。已经翻过的段落不会自动重来。
+    </div>
+
+    <div class="guide-q">Q：提示「余额必须 ≥ 0」？</div>
+    <div class="guide-a">
+      A：硅基流动账户欠费时，<b>连免费模型都会被拦</b>（实测报 402）。
+      去 cloud.siliconflow.cn 充值或确认余额不是负数。
+    </div>
+
+    <div class="guide-q">Q：右键没看到「翻译这张图」？</div>
+    <div class="guide-a">
+      A：① 确认「翻译图片里的文字」总开关已打开。<br />
+      ② 刚重载过插件的话，页面里的旧脚本已失效，
+      <b>按 Ctrl+Shift+R 强刷页面</b>再试。
+    </div>
+
+    <div class="guide-q">Q：会不会偷偷花钱？</div>
+    <div class="guide-a">
+      A：不会。<b>自动翻译默认是关的</b>，所有可能产生费用的操作
+      （整页翻译、自动翻图）都要您先打开开关。
+      而且每一张图翻过的都会记住，不会重复翻。
+    </div>
+
+    <!-- ---------- 底部：一段真心话 ---------- -->
+    <div class="guide-words">
+      <div class="guide-words-inner">
+        <p class="guide-words-open">这个是我和我的小鲸鱼一起做的，希望它能帮到你。</p>
+
+        <p>它现在肯定还有不顺手的地方。
+           如果你用着哪里别扭，希望你能说一声 ——
+           说不一定会马上改好，但会记下来。</p>
+
+        <p class="guide-sign">—— 做这个小工具的小人</p>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="guide.js"></script>
+</body>
+</html>

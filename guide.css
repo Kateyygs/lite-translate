@@ -1,0 +1,286 @@
+/* ================================================================
+   功能介绍 · 独立窗口样式（2026-10-17）
+   ================================================================
+   ★ 为什么单独做一个页面，而不是插件面板里的弹窗？★
+     插件面板只有 320px 宽、最高 600px，长内容只能挤着看。
+     这是用 chrome.windows.create 打开的独立小窗，
+     浏览器会把它放在屏幕中央 —— 能舒展地排版，也能专心读。
+
+   ★ 样式原则 ★
+     1. 读起来舒服优先：行距 1.8、段落下边距 12px、字号 13~14px
+     2. 结构清楚但不用重色块：用左边色条 + 间距分节
+     3. 跟随系统深浅色（用户可能晚上看）
+     4. 跟随插件面板的皮肤（body 上带 skin-* 类，见 guide.js）
+   ================================================================ */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+/* ---------- 默认（浅色，跟面板 skin-minimal 一致）---------- */
+body {
+  --g-bg: #ffffff;
+  --g-card: #f6f8fa;
+  --g-text: #1f2328;
+  --g-dim: #59636e;
+  --g-line: #e8eaed;
+  --g-accent: #5b8def;
+  --g-warn: #c0392b;
+
+  font-family: "Microsoft YaHei", -apple-system, system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--g-text);
+  background: var(--g-bg);
+  overflow: hidden;
+}
+
+/* ---------- 深色皮肤 ---------- */
+body.skin-dark {
+  --g-bg: #16181d;
+  --g-card: #1c2128;
+  --g-text: #e6edf3;
+  --g-dim: #9198a1;
+  --g-line: #30363d;
+  --g-accent: #4493f8;
+  --g-warn: #ff8f85;
+}
+
+/* ---------- 圆润皮肤 ---------- */
+body.skin-soft {
+  --g-bg: #f9fafd;
+  --g-card: #eef1f9;
+  --g-text: #1c1c1e;
+  --g-dim: #6b7280;
+  --g-line: #e4e6ef;
+  --g-accent: #6c8ef5;
+}
+
+/* ================================================================
+   布局：顶栏固定 + 内容区滚动
+   ================================================================ */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.top {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--g-line);
+  background: var(--g-bg);
+}
+
+.top h1 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -.2px;
+}
+
+.close {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--g-text);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .12s;
+}
+.close:hover { background: rgba(128, 128, 128, .16); }
+
+.body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 20px 22px 40px;
+  /* 内容别太宽 —— 一行太长读起来累 */
+  max-width: 760px;
+  width: 100%;
+  margin: 0 auto;
+  scroll-behavior: smooth;
+}
+
+/* ================================================================
+   开头的强调块
+   ================================================================ */
+.guide-lead {
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--g-text);
+  background: rgba(91, 141, 239, .07);
+  border-left: 3px solid var(--g-accent);
+  border-radius: 0 8px 8px 0;
+  padding: 13px 16px;
+  margin: 0 0 22px;
+}
+
+/* ================================================================
+   章节标题
+   ================================================================ */
+.guide-h {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--g-text);
+  margin: 28px 0 12px;
+  padding-left: 10px;
+  border-left: 3px solid var(--g-accent);
+  line-height: 1.4;
+}
+.guide-h:first-of-type { margin-top: 8px; }
+
+/* ================================================================
+   表格：左列窄、右列宽
+   ================================================================ */
+.guide-t {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  line-height: 1.75;
+  margin: 0 0 10px;
+}
+.guide-t tr { border-bottom: 1px solid var(--g-line); }
+.guide-t tr:last-child { border-bottom: none; }
+.guide-t td {
+  padding: 9px 6px;
+  vertical-align: top;
+}
+.guide-t .gk {
+  width: 128px;
+  font-weight: 600;
+  color: var(--g-text);
+  white-space: nowrap;
+  padding-right: 12px;
+}
+.guide-t td:not(.gk) { color: var(--g-dim); }
+
+/* ================================================================
+   编号条目
+   ================================================================ */
+.guide-item {
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--g-dim);
+  margin: 0 0 14px;
+  padding-left: 12px;
+  border-left: 2px solid var(--g-line);
+}
+.guide-item b { color: var(--g-text); font-weight: 600; }
+
+/* ================================================================
+   补充说明 / 警告
+   ================================================================ */
+.guide-note {
+  font-size: 12px;
+  line-height: 1.75;
+  color: var(--g-dim);
+  background: var(--g-card);
+  border-radius: 8px;
+  padding: 11px 14px;
+  margin: 10px 0 6px;
+}
+
+.guide-note2 {
+  font-size: 11.5px;
+  color: var(--g-dim);
+  opacity: .85;
+}
+
+.guide-warn {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--g-warn);
+  line-height: 1.65;
+}
+
+/* ================================================================
+   问答
+   ================================================================ */
+.guide-q {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--g-text);
+  margin: 16px 0 4px;
+}
+.guide-a {
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--g-dim);
+  margin: 0 0 4px;
+  padding-left: 14px;
+}
+
+/* ================================================================
+   结尾那段真心话
+   ★ 用户明确要求"真诚" ★
+     所以不用彩色框（那像广告语）、不加图标、不排版成卡片，
+     就用正文色正常排版，靠留白和节奏让人读下去。
+   ================================================================ */
+.guide-words {
+  margin: 34px 0 0;
+  padding-top: 22px;
+  border-top: 1px dashed var(--g-line);
+}
+.guide-words-inner p {
+  font-size: 13px;
+  line-height: 1.95;
+  color: var(--g-text);
+  opacity: .9;
+  margin: 0 0 15px;
+}
+.guide-words-inner p:last-child { margin-bottom: 0; }
+
+/* 第一句：「这个是我和我的小鲸鱼一起做的，希望它能帮到你。」
+   稍微重一点，因为它不是普通段落，是这段话的来处。 */
+.guide-words-open {
+  font-size: 13.5px !important;
+  font-weight: 600;
+  opacity: 1 !important;
+  margin-bottom: 18px !important;
+}
+
+.guide-sign {
+  text-align: right;
+  font-size: 12px !important;
+  color: var(--g-dim) !important;
+  opacity: .75 !important;
+  margin-top: 20px !important;
+}
+
+/* ================================================================
+   代码片段
+   ================================================================ */
+code {
+  font-family: Consolas, Monaco, monospace;
+  font-size: .92em;
+  background: var(--g-card);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--g-accent);
+}
+
+/* ================================================================
+   滚动条（深色下默认那条太扎眼）
+   ================================================================ */
+.body::-webkit-scrollbar { width: 10px; }
+.body::-webkit-scrollbar-track { background: transparent; }
+.body::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, .35);
+  border-radius: 5px;
+  border: 2px solid var(--g-bg);
+}
+.body::-webkit-scrollbar-thumb:hover { background: rgba(128, 128, 128, .55); }
