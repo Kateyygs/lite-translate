@@ -149,4 +149,14 @@ node test-fullscope.js
 
 ## 许可
 
-MIT License，见 [LICENSE](LICENSE)。
+**GNU General Public License v3.0**（GPL-3.0），全文见 [LICENSE](LICENSE)。
+
+说人话：
+
+- ✅ 可以自由使用、学习、修改、分发
+- ✅ 可以自己改了给自己用，修 bug 也行
+- ⚠️ **如果把改过的版本发出去，必须也用 GPL-3.0 开源**
+- 🔴 **不能拿它改一改、闭源包装成自己的产品去卖**
+
+也就是说：这份代码可以一直被人用，但不能被人「拿走，变成别人的」。
+
