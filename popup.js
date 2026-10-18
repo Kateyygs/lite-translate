@@ -213,15 +213,29 @@ function syncModelBox() {
 
 function syncCustomBox() {
   const e = els.engine.value;
-  els.customBox.classList.toggle('show', e === 'custom');
+
+  // ★ 2026-10-19 修：漫画模式下固定只显示硅基流动 ★
+  //   ★ 这是主人那个 bug 的真正根因 ★
+  //   原来这里一律按「翻译引擎」下拉框的值决定显示哪一块。
+  //   但「翻译引擎」这个选项本身是 site-only（网站模式才有），
+  //   漫画模式看不到它、也改不了它 —— 它的值还停在上次网站模式选的
+  //   （常见是 mymemory）。于是：
+  //     · mmEmailRow  → display=block  （MyMemory 邮箱冒出来了）
+  //     · siliconflowBox → display=none（漫画真正要用的反而被藏了）
+  //   这就是"漫画模式下显示 MyMemory 邮箱"的原因。
+  //   漫画模式只有硅基流动能看图，所以这里直接固定它。
+  const isComic = document.body.classList.contains('mode-comic');
+  const engine = isComic ? 'siliconflow' : e;
+
+  els.customBox.classList.toggle('show', engine === 'custom');
   // MyMemory 的邮箱设置只在选它时显示
-  els.mmEmailRow.style.display = e === 'mymemory' ? 'block' : 'none';
+  els.mmEmailRow.style.display = engine === 'mymemory' ? 'block' : 'none';
   // 智谱的 Key / 模型只在选它时显示
-  els.zhipuBox.style.display = e === 'zhipu' ? 'block' : 'none';
+  els.zhipuBox.style.display = engine === 'zhipu' ? 'block' : 'none';
   // 硅基流动的 Key / 模型只在选它时显示
-  els.siliconflowBox.style.display = e === 'siliconflow' ? 'block' : 'none';
+  els.siliconflowBox.style.display = engine === 'siliconflow' ? 'block' : 'none';
   // DeepSeek 的 Key / 模型只在选它时显示
-  els.deepseekBox.style.display = e === 'deepseek' ? 'block' : 'none';
+  els.deepseekBox.style.display = engine === 'deepseek' ? 'block' : 'none';
 }
 
 /**
@@ -1153,10 +1167,22 @@ function bindAuthorDock() {
  *   有个明确的「保存设置」按钮，心里有底 —— 点了才算数。
  *   保存后自动关闭弹窗，给个"已保存"的反馈。
  */
+/**
+ * 打开设置弹窗。
+ *
+ * ★ 2026-10-19 修：这里原来调了个 forceSettingsVisibility() ★
+ *   那个函数是"打开时把 .site-only 的 display 重置成空"，
+ *   想绕开 CSS 层叠问题。结果**正好把 bug 弄反了**：
+ *   syncCustomBox() 原本用内联样式把 MyMemory 邮箱藏起来
+ *   （display=none），被它重置成 '' 之后又显示出来了。
+ *   所以删掉那段。真正的原因在 syncCustomBox 里（见那里的注释）。
+ */
 function openSettingsModal() {
   const modal = $('settingsModal');
   if (!modal) return;
   modal.classList.remove('sm-hidden');
+  // 按当前模式重新算一遍该显示哪一块（漫画模式固定硅基流动）
+  syncCustomBox();
   // 每次打开回到顶部，别让人接着上次的滚动位置看
   const body = modal.querySelector('.sm-body');
   if (body) body.scrollTop = 0;
@@ -1336,6 +1362,12 @@ function applyPanelMode(mode) {
   document.body.classList.toggle('mode-comic', isComic);
   document.body.classList.toggle('mode-site', !isComic);
 
+  // 切模式后重算"该显示哪一块 Key/模型"
+  //   body 的类刚改完，syncCustomBox 会按新模式决定：
+  //   漫画 → 固定硅基流动；网站 → 按「翻译引擎」下拉框的值。
+  //   （2026-10-19：这就是主人那个 bug 的根源，原来没在这里重算）
+  syncCustomBox();
+
   // ★ 通知页面：切换模式，停掉另一边翻译 ★
   //   为什么？网站「整页翻译」和漫画「图片翻译」都调同一个
   //   硅基流动 Key，同时跑会抢额度。content.js 收到后：
@@ -1458,18 +1490,32 @@ async function doShotTranslate() {
 // 初始化
 // ------------------------------------------------------------------
 (async function init() {
-  await loadSettings();
-  await loadAppearance();
-  await loadPanelAppearance();
-  await initFolds();
-  bindAppearanceEvents();
-  bindPanelEvents();
-  bindAuthorDock();
-  bindGuideModal();
-  bindSettingsModal();
-  bindModeSwitch();
-  bindSettingsPage();
-  await loadPanelMode();
+  // ★ 2026-10-19 加固：每一步独立 try/catch ★
+  //   原来是一长串 await，任何一步抛错（比如某个 storage 键读不到、
+  //   某个元素不存在）都会让后面的绑定全部跳过 ——
+  //   表现就是"按钮点了没反应"、"模式切不了"这类怪现象，
+  //   而且控制台只有一个错，很难定位。
+  //   现在改成：一步失败只记日志，流程继续。
+  const safe = async (label, fn) => {
+    try {
+      await fn();
+    } catch (e) {
+      console.error('[init] ' + label + ' 失败：', e);
+    }
+  };
+
+  await safe('loadSettings', () => loadSettings());
+  await safe('loadAppearance', () => loadAppearance());
+  await safe('loadPanelAppearance', () => loadPanelAppearance());
+  await safe('initFolds', () => initFolds());
+  await safe('bindAppearanceEvents', () => bindAppearanceEvents());
+  await safe('bindPanelEvents', () => bindPanelEvents());
+  await safe('bindAuthorDock', () => bindAuthorDock());
+  await safe('bindGuideModal', () => bindGuideModal());
+  await safe('bindSettingsModal', () => bindSettingsModal());
+  await safe('bindModeSwitch', () => bindModeSwitch());
+  await safe('bindSettingsPage', () => bindSettingsPage());
+  await safe('loadPanelMode', () => loadPanelMode());
 
   const tab = await getActiveTab();
   currentTabId = tab && tab.id;

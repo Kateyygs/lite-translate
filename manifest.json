@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "LiteTranslate 轻量翻译",
-  "version": "0.28.1",
-  "description": "只翻你眼前看得见的部分：网页文字、图片里的字，滚到哪翻到哪，不卡不乱。",
-  "permissions": ["storage", "activeTab", "contextMenus", "scripting"],
+  "version": "0.28.4",
+  "description": "只翻译你看得见的部分 —— 一个不卡顿的网页翻译插件",
+  "permissions": ["storage", "unlimitedStorage", "activeTab", "contextMenus", "scripting"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
