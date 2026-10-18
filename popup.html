@@ -1923,14 +1923,16 @@
     </div>
   </div>
 
-  <!-- ===== 左下角：作者入口（赏 + B站） ===== -->
+  <!-- ===== 左下角：作者入口（只留 B 站） =====
+       ★ 2026-10-18 改：上架版去掉打赏按钮 ★
+         原因：Edge 商店审核可能把打赏当「诱导支付」拒稿。
+         开发版（D:\...\lite-translate）保留打赏，不影响自己用。 -->
   <div id="authorDock">
     <button id="btnBili" class="dock-btn dock-bili" title="作者的 B 站">
       <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
         <path fill="currentColor" d="M18.2 3.4h-1.9l1.2 1.2a1 1 0 0 1-1.4 1.4L14.2 3.4H9.8L7 6a1 1 0 0 1-1.4-1.4l1.2-1.2H4.9A2.9 2.9 0 0 0 2 6.3v10.3a2.9 2.9 0 0 0 2.9 2.9h13.3a2.9 2.9 0 0 0 2.9-2.9V6.3a2.9 2.9 0 0 0-2.9-2.9Zm1 13.2a1 1 0 0 1-1 1H5.9a1 1 0 0 1-1-1V7.2a1 1 0 0 1 1-1h12.3a1 1 0 0 1 1 1Zm-9.6-6.4a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4Zm5.8 0a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4Z"/>
       </svg>
     </button>
-    <button id="btnDonate" class="dock-btn dock-donate" title="打赏作者">赏</button>
   </div>
 
     <!-- ===== 功能介绍弹窗（跟「赏」同款交互：点遮罩 / × / Esc 关闭）===== -->

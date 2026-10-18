@@ -1079,7 +1079,9 @@ function bindPanelEvents() {
 //   · 打赏码不压缩，保证手机能扫出来
 // ------------------------------------------------------------------
 const AUTHOR_IMAGES = {
-  donate: 'assets/donate-card.png',
+  // ★ 2026-10-18 上架版：去掉打赏，只留 B 站 ★
+  //   原因：Edge 商店审核可能把打赏判成「诱导支付」。
+  //   开发版里 donate 还在，自己用不受影响。
   bili: 'assets/bili-card.png',
 };
 
@@ -1088,7 +1090,7 @@ function openAuthorModal(which) {
   const img = $('amImg');
   if (!modal || !img || !AUTHOR_IMAGES[which]) return;
   img.src = AUTHOR_IMAGES[which];
-  img.alt = which === 'donate' ? '打赏作者' : '作者的 B 站';
+  img.alt = '作者的 B 站';
   modal.classList.remove('am-hidden');
 }
 
@@ -1098,13 +1100,20 @@ function closeAuthorModal() {
 }
 
 function bindAuthorDock() {
-  const btnDonate = $('btnDonate');
+  const btnDonate = $('btnDonate');   // 上架版没有这个按钮，会是 null
   const btnBili = $('btnBili');
   const modal = $('authorModal');
   const closeBtn = $('amClose');
-  if (!btnDonate || !btnBili || !modal) return;
 
-  btnDonate.addEventListener('click', function () { openAuthorModal('donate'); });
+  // ★ 2026-10-18 修：原来判断 btnDonate 存在才绑定 ★
+  //   上架版删掉了打赏按钮，btnDonate 为 null，
+  //   这个 return 会把整个函数跳过 —— B 站按钮也就点不动了。
+  //   现在只要求「B 站按钮 + 弹窗」存在就继续。
+  if (!btnBili || !modal) return;
+
+  if (btnDonate) {
+    btnDonate.addEventListener('click', function () { openAuthorModal('donate'); });
+  }
   btnBili.addEventListener('click', function () { openAuthorModal('bili'); });
   if (closeBtn) closeBtn.addEventListener('click', closeAuthorModal);
 
